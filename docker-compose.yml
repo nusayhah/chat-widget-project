@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:10.11
+    container_name: chat_mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: chatdb
+      MYSQL_USER: chatuser
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./mariadb:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  server:
+    build: ./server
+    container_name: chat_server
+    restart: always
+    depends_on:
+      - mariadb
+    ports:
+      - "3000:3000"
+
+  admin-ui:
+    build: ./admin-ui
+    container_name: admin_ui
+    restart: always
+    ports:
+      - "3001:3000"
+
+  agent-ui:
+    build: ./agent-ui
+    container_name: agent_ui
+    restart: always
+    ports:
+      - "3002:3000"
