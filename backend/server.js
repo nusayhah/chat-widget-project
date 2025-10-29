@@ -5,6 +5,9 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+const WebSocket = require('ws');
+const ChatHandler = require('./websocket/chatHandler');
+
 const { testConnection } = require('./config/database');
 const authRoutes = require('./routes/auth');
 const widgetRoutes = require('./routes/widgets');
@@ -86,11 +89,17 @@ const startServer = async () => {
       process.exit(1);
     }
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`🚀 Chat Widget API server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 Health check: http://localhost:${PORT}/health`);
     });
+
+    // 🆕 ADD WEB SOCKET SERVER
+    const wss = new WebSocket.Server({ server });
+    new ChatHandler(wss);
+    console.log(`🔌 WebSocket server running on port ${PORT}`);
+    
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
