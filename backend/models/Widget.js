@@ -35,7 +35,7 @@ class Widget {
     const site_key = `widget-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
     
     const query = `
-      INSERT INTO widgets (
+      INSERT INTO widget_configs (
         user_id, site_key, business_name, widget_title, welcome_message,
         primary_color, secondary_color, position, enable_prechat_form,
         prechat_fields, is_active, created_at, updated_at
@@ -57,7 +57,7 @@ class Widget {
 
   // Find widget by ID
   static async findById(id) {
-    const query = 'SELECT * FROM widgets WHERE id = ?';
+    const query = 'SELECT * FROM widget_configs WHERE id = ?';
     
     try {
       const [rows] = await pool.execute(query, [id]);
@@ -74,7 +74,7 @@ class Widget {
 
   // Find widget by site key
   static async findBySiteKey(siteKey) {
-    const query = 'SELECT * FROM widgets WHERE site_key = ?';
+    const query = 'SELECT * FROM widget_configs WHERE site_key = ?';
     
     try {
       const [rows] = await pool.execute(query, [siteKey]);
@@ -92,7 +92,7 @@ class Widget {
   // Find all widgets by user ID
   static async findByUserId(userId, limit = 50, offset = 0) {
     const query = `
-      SELECT * FROM widgets 
+      SELECT * FROM widget_configs 
       WHERE user_id = ? 
       ORDER BY created_at DESC 
       LIMIT ? OFFSET ?
@@ -134,7 +134,7 @@ class Widget {
     fields.push('updated_at = NOW()');
     values.push(this.id);
     
-    const query = `UPDATE widgets SET ${fields.join(', ')} WHERE id = ?`;
+    const query = `UPDATE widget_configs SET ${fields.join(', ')} WHERE id = ?`;
     
     try {
       await pool.execute(query, values);
@@ -146,7 +146,7 @@ class Widget {
 
   // Delete widget
   async delete() {
-    const query = 'DELETE FROM widgets WHERE id = ?';
+    const query = 'DELETE FROM widget_configs WHERE id = ?';
     
     try {
       const [result] = await pool.execute(query, [this.id]);
@@ -163,7 +163,7 @@ class Widget {
         COUNT(*) as total_widgets,
         SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_widgets,
         SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive_widgets
-      FROM widgets 
+      FROM widget_configs 
       WHERE user_id = ?
     `;
     

@@ -36,7 +36,7 @@ class ChatWidget {
 
   constructor(config: WidgetConfig) {
     this.config = {
-      apiUrl: 'http://localhost:3001/api',
+      apiUrl: 'https://localhost/api',
       businessName: 'Support Team',
       widgetTitle: 'Chat with us',
       welcomeMessage: 'Hello! How can we help you today?',
@@ -73,7 +73,7 @@ class ChatWidget {
         sender: 'agent',
         timestamp: new Date()
       });
-      
+
     } catch (error) {
       console.error('Failed to initialize chat widget:', error);
     }
@@ -463,6 +463,8 @@ class ChatWidget {
         0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
         40% { transform: scale(1); opacity: 1; }
       }
+
+      /* 🚫 REMOVED: All escalation button CSS styles */
     `;
     
     document.head.appendChild(style);
@@ -606,7 +608,7 @@ class ChatWidget {
 
   private setupWebSocket(): void {
     try {
-      const wsUrl = `ws://localhost:5000/ws/${this.sessionId}`;
+      const wsUrl = `wss://localhost/ws/${this.sessionId}`;
       this.websocket = new WebSocket(wsUrl);
       
       this.websocket.onopen = () => {
@@ -637,10 +639,10 @@ class ChatWidget {
     }
   }
 
-  private sendWebSocketMessage(message: string): void {
+  private sendWebSocketMessage(message: string, type: string = 'message'): void {
     if (this.websocket?.readyState === WebSocket.OPEN) {
       this.websocket.send(JSON.stringify({
-        type: 'message',
+        type: type,
         sessionId: this.sessionId,
         siteKey: this.config.siteKey,
         message: message,
@@ -668,6 +670,33 @@ class ChatWidget {
         } else {
           this.hideTypingIndicator();
         }
+        break;
+
+      case 'escalation_started':
+        this.addMessage({
+          id: 'escalation-' + Date.now(),
+          text: data.message || '🚨 Connecting you with a human agent...',
+          sender: 'agent',
+          timestamp: new Date()
+        });
+        break;
+
+      case 'queue_update':
+        this.addMessage({
+          id: 'queue-' + Date.now(),
+          text: `⏳ You are position ${data.position} in the queue. Estimated wait: ${data.estimatedWait} minutes`,
+          sender: 'agent',
+          timestamp: new Date()
+        });
+        break;
+      
+      case 'agent_joined':
+        this.addMessage({
+          id: 'agent-joined-' + Date.now(),
+          text: data.message || '👋 A human agent has joined the chat!',
+          sender: 'agent',
+          timestamp: new Date()
+        });
         break;
         
       default:
@@ -718,3 +747,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 export default ChatWidget;
+

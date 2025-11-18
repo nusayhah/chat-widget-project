@@ -11,6 +11,7 @@ const ChatHandler = require('./websocket/chatHandler');
 const { testConnection } = require('./config/database');
 const authRoutes = require('./routes/auth');
 const widgetRoutes = require('./routes/widgets');
+const agentRoutes = require('./routes/agents'); // âœ… MOVE THIS HERE
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,11 +21,13 @@ app.use(helmet());
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3001', 'http://localhost:3000'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3001','http://localhost:3002', 'http://localhost:3000','https://localhost','http://192.168.100.124:3001','http://192.168.100.124:3002','null'],
   credentials: true,
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
+
+app.set('trust proxy', 1);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -35,7 +38,7 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.'
   }
 });
-app.use('/api/', limiter);
+//app.use('/api/', limiter);
 
 // Logging middleware
 app.use(morgan('combined'));
@@ -45,7 +48,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({
     success: true,
     message: 'Chat Widget API is running',
@@ -57,6 +60,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/widgets', widgetRoutes);
+app.use('/api/agents', agentRoutes); // âœ… USE IT HERE
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -85,23 +89,23 @@ const startServer = async () => {
     // Test database connection
     const dbConnected = await testConnection();
     if (!dbConnected) {
-      console.error('❌ Failed to connect to database. Server not started.');
+      console.error('âŒ Failed to connect to database. Server not started.');
       process.exit(1);
     }
 
     const server = app.listen(PORT, () => {
-      console.log(`🚀 Chat Widget API server running on port ${PORT}`);
-      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+      console.log(`ðŸš€ Chat Widget API server running on port ${PORT}`);
+      console.log(`ðŸ“Š Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`ðŸ”— Health check: http://localhost:${PORT}/health`);
     });
 
-    // 🆕 ADD WEB SOCKET SERVER
+    // ðŸ†• ADD WEB SOCKET SERVER
     const wss = new WebSocket.Server({ server });
     new ChatHandler(wss);
-    console.log(`🔌 WebSocket server running on port ${PORT}`);
+    console.log(`ðŸ”Œ WebSocket server running on port ${PORT}`);
     
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error('âŒ Failed to start server:', error);
     process.exit(1);
   }
 };
