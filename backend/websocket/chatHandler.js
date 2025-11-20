@@ -558,6 +558,17 @@ class ChatHandler {
       case 'return_to_ai':
         this.handleReturnToAI(agentId, message.sessionId);
         break;
+
+
+       // 🆕 ADD THIS PING HANDLER:
+      case 'ping':
+        console.log(`🏓 Ping received from agent ${agentId}`);
+        // Optional: Send pong response
+        this.sendMessage(agent.ws, {
+          type: 'pong',
+          timestamp: new Date().toISOString()
+        });
+        break;
       default:
         console.log('Unknown agent message type:', message.type);
     }
