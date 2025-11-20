@@ -67,4 +67,5 @@ class WidgetService {
   }
 }
 
-export default new WidgetService();
+const widgetService = new WidgetService();
+export default widgetService;
