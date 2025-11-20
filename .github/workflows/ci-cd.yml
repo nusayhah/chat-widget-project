@@ -68,6 +68,11 @@ jobs:
         npm ci
         npm run build
 
+    # ADD THIS NEW STEP HERE ↓
+    - name: Create empty .env file for CI
+      run: |
+        touch .env
+
     # Docker Build Validation
     - name: Build Docker Images
       run: |
