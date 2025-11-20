@@ -442,6 +442,14 @@ class ChatHandler {
   // ✅ FIX 2: Improved agent connection stability
   handleAgentConnection(ws, agentId) {
     console.log(`🔵 Agent ${agentId} connected to WebSocket`);
+
+
+    // 🆕 ADD KEEP-ALIVE
+    ws.isAlive = true;
+    ws.on('pong', () => {
+      ws.isAlive = true;
+      console.log(`🏓 Keep-alive pong from agent ${agentId}`);
+    }); 
   
     this.agents.set(agentId, {
       ws,
@@ -534,7 +542,7 @@ class ChatHandler {
     if (!agent) return;
 
     console.log(`📨 Agent ${agentId} message:`, message.type);
-
+    console.log(`📨 Full message:`, JSON.stringify(message)); // 🆕 ADD THIS
     switch (message.type) {
       case 'agent_identify':
         console.log(`🔵 Agent ${agentId} identified`);
@@ -560,17 +568,17 @@ class ChatHandler {
         break;
 
 
-       // 🆕 ADD THIS PING HANDLER:
+      // 🆕 ENHANCED PING HANDLER:
       case 'ping':
-        console.log(`🏓 Ping received from agent ${agentId}`);
-        // Optional: Send pong response
+        console.log(`✅ 🏓 PING HANDLER WORKING! Ping received from agent ${agentId}`);
+      // Send pong response to maintain connection
         this.sendMessage(agent.ws, {
           type: 'pong',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          agentId: agentId
         });
+        console.log(`✅ 🏓 Pong sent to agent ${agentId}`);
         break;
-      default:
-        console.log('Unknown agent message type:', message.type);
     }
   }
 
