@@ -82,6 +82,61 @@ router.post('/login', validate(userSchemas.login), async (req, res) => {
   }
 });
 
+// Agent login route
+router.post('/agent-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    console.log('🔐 Agent login attempt:', email);
+    
+    // Simple mock agent authentication
+    const mockAgents = [
+      {
+        id: 1,
+        email: 'agent@company.com',
+        full_name: 'Support Agent',
+        role: 'agent'
+      },
+      {
+        id: 2, 
+        email: 'agent2@company.com',
+        full_name: 'Second Agent',
+        role: 'agent'
+      }
+    ];
+    
+    // Find agent by email (mock for now)
+    const agent = mockAgents.find(a => a.email === email);
+    
+    if (!agent) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid agent credentials'
+      });
+    }
+    
+    // For demo - accept any password
+    const token = generateToken(agent.id);
+    
+    console.log('✅ Agent login successful:', agent.email);
+    
+    res.json({
+      success: true,
+      message: 'Agent login successful',
+      data: {
+        agent: agent,
+        token
+      }
+    });
+  } catch (error) {
+    console.error('Agent login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during agent login'
+    });
+  }
+});
+
 // Get current user profile
 router.get('/me', require('../middleware/auth').authenticateToken, async (req, res) => {
   try {

@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import authService from '../services/authService';
 
-// Initial state
 const initialState = {
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
+  user: {
+    id: 1,
+    username: 'developer',
+    email: 'dev@example.com'
+  },
+  isAuthenticated: true,
+  isLoading: false,
   error: null
 };
 

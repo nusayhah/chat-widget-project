@@ -6,34 +6,78 @@ services:
     container_name: chat_mariadb
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: chatdb
-      MYSQL_USER: chatuser
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: "root123"
+      MYSQL_DATABASE: "chatdb"
+      MYSQL_USER: "chatuser"
+      MYSQL_PASSWORD: "chat123"
     volumes:
-      - ./mariadb:/var/lib/mysql
-    ports:
-      - "3306:3306"
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      start_period: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chat-network
 
   server:
-    build: ./server
+    build: ./backend
     container_name: chat_server
     restart: always
     depends_on:
-      - mariadb
-    ports:
-      - "3000:3000"
+      mariadb:
+        condition: service_healthy
+    env_file: .env
+    command: >
+      sh -c "
+      sleep 10 &&
+      npm start
+      "
+    networks:
+      - chat-network
 
   admin-ui:
-    build: ./admin-ui
+    build: 
+      context: ./admin-ui
+      args:
+        - REACT_APP_API_URL=https://localhost/api
+        - REACT_APP_WS_URL=wss://localhost/ws
     container_name: admin_ui
     restart: always
-    ports:
-      - "3001:3000"
+    networks:
+      - chat-network
 
   agent-ui:
-    build: ./agent-ui
+    build:
+      context: ./agent-ui
+      args:
+        - REACT_APP_API_URL=https://localhost/api
+        - REACT_APP_WS_URL=wss://localhost/ws
     container_name: agent_ui
     restart: always
+    networks:
+      - chat-network
+
+  nginx:
+    build: ./nginx
+    container_name: nginx_proxy
+    restart: always
     ports:
-      - "3002:3000"
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - server
+      - admin-ui
+      - agent-ui
+    volumes:
+      - ./static:/var/www/static
+    networks:
+      - chat-network
+
+volumes:
+  mariadb_data:
+
+networks:
+  chat-network:
+    driver: bridge

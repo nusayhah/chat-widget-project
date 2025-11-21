@@ -1,7 +1,0 @@
-{
-  "name": "chat-server",
-  "type": "module",
-  "scripts": {
-    "start": "node src/index.js"
-  }
-}
