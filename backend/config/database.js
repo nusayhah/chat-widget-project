@@ -2,11 +2,11 @@ const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const dbConfig = {
-  host: process.env.DB_HOST || 'chat_mariadb',
+  host: process.env.DB_HOST || 'mariadb',
   port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'chatwidget_user',
-  password: process.env.DB_PASSWORD || 'secure_password_123',
-  database: process.env.DB_NAME || 'chat_widget_db',
+  user: process.env.DB_USER || 'chatuser',
+  password: process.env.DB_PASSWORD || 'chat123',
+  database: process.env.DB_NAME || 'chatdb',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,

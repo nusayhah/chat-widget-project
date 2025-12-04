@@ -40,12 +40,14 @@
         constructor(config) {
             this.container = null;
             this.chatWindow = null;
+            this.overlay = null;
             this.isOpen = false;
             this.isMinimized = true;
             this.websocket = null;
             this.messages = [];
-            this.config = Object.assign({ apiUrl: 'https://localhost/api', businessName: 'Support Team', widgetTitle: 'Chat with us', welcomeMessage: 'Hello! How can we help you today?', primaryColor: '#007bff', secondaryColor: '#6c757d', position: 'bottom-right', enablePrechatForm: false, prechatFields: [] }, config);
+            this.config = Object.assign({ apiUrl: config.apiUrl || `https://${window.location.hostname}/api`, businessName: 'Support Team', widgetTitle: 'Chat with us', welcomeMessage: 'Hello! How can we help you today?', primaryColor: '#007bff', secondaryColor: '#6c757d', position: 'bottom-right', enablePrechatForm: false, prechatFields: [] }, config);
             this.sessionId = this.generateSessionId();
+            this.isMobile = window.innerWidth <= 768;
             this.init();
         }
         generateSessionId() {
@@ -96,57 +98,114 @@
             this.addStyles();
             // Append to body
             document.body.appendChild(this.container);
-            // Get chat window reference
+            // Get references
             this.chatWindow = this.container.querySelector('.chat-window');
+            if (this.isMobile) {
+                this.overlay = this.container.querySelector('.chat-overlay');
+            }
             // Add event listeners
             this.addEventListeners();
         }
         getWidgetHTML() {
             const positionClass = `chat-widget-${this.config.position}`;
-            return `
-      <div class="chat-widget ${positionClass}">
-        <!-- Chat Button -->
-        <div class="chat-button" id="chat-toggle">
-          <svg class="chat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
-          </svg>
-          <svg class="close-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
+            if (this.isMobile) {
+                // MOBILE: Sidebar design with overlay
+                return `
+        <div class="chat-widget ${positionClass}">
+          <!-- Chat Button -->
+          <div class="chat-button" id="chat-toggle">
+            <svg class="chat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+            </svg>
+          </div>
 
-        <!-- Chat Window -->
-        <div class="chat-window">
-          <div class="chat-header">
-            <div class="chat-header-info">
-              <h3>${this.config.widgetTitle}</h3>
-              <p>${this.config.businessName}</p>
-            </div>
-            <button class="minimize-btn" id="minimize-chat">−</button>
-          </div>
-          
-          <div class="chat-messages" id="chat-messages">
-            <!-- Messages will be added here -->
-          </div>
-          
-          <div class="chat-input-container">
-            <div class="chat-input-wrapper">
-              <input 
-                type="text" 
-                id="chat-input" 
-                placeholder="Type your message..." 
-                maxlength="500"
-              />
-              <button id="send-message" class="send-btn">
+          <!-- Overlay (mobile only) -->
+          <div class="chat-overlay"></div>
+
+          <!-- Chat Window (mobile sidebar) -->
+          <div class="chat-window mobile-chat">
+            <div class="chat-header">
+              <div class="chat-header-info">
+                <h3>${this.config.widgetTitle}</h3>
+                <p>${this.config.businessName}</p>
+              </div>
+              <button class="close-btn" id="close-chat">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
               </button>
             </div>
+            
+            <div class="chat-messages" id="chat-messages">
+              <!-- Messages will be added here -->
+            </div>
+            
+            <div class="chat-input-container">
+              <div class="chat-input-wrapper">
+                <input 
+                  type="text" 
+                  id="chat-input" 
+                  placeholder="Type your message..." 
+                  maxlength="500"
+                />
+                <button id="send-message" class="send-btn">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+            }
+            else {
+                // DESKTOP: Old compact design
+                return `
+        <div class="chat-widget ${positionClass}">
+          <!-- Chat Button -->
+          <div class="chat-button" id="chat-toggle">
+            <svg class="chat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+            </svg>
+            <svg class="close-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Chat Window (desktop compact) -->
+          <div class="chat-window desktop-chat">
+            <div class="chat-header">
+              <div class="chat-header-info">
+                <h3>${this.config.widgetTitle}</h3>
+                <p>${this.config.businessName}</p>
+              </div>
+              <button class="minimize-btn" id="minimize-chat">−</button>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages">
+              <!-- Messages will be added here -->
+            </div>
+            
+            <div class="chat-input-container">
+              <div class="chat-input-wrapper">
+                <input 
+                  type="text" 
+                  id="chat-input" 
+                  placeholder="Type your message..." 
+                  maxlength="500"
+                />
+                <button id="send-message" class="send-btn">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+            }
         }
         addStyles() {
             const style = document.createElement('style');
@@ -182,6 +241,7 @@
         left: 20px;
       }
 
+      /* Chat Button */
       .chat-button {
         width: 60px;
         height: 60px;
@@ -195,6 +255,8 @@
         justify-content: center;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         transition: all 0.3s ease;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
         position: relative;
       }
 
@@ -225,7 +287,65 @@
         transform: rotate(0deg);
       }
 
-      .chat-window {
+      /* ==================== */
+      /* MOBILE STYLES - SIDEBAR DESIGN */
+      /* ==================== */
+      
+      /* Overlay - MOBILE ONLY */
+      .chat-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 999998;
+      }
+
+      .chat-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      /* Chat Window - MOBILE SIDEBAR */
+      .mobile-chat {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 100%;
+        height: 100%;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 999999;
+        overflow: hidden;
+      }
+
+      .mobile-chat.open {
+        right: 0;
+      }
+
+      .chat-widget-bottom-left .mobile-chat,
+      .chat-widget-top-left .mobile-chat {
+        right: auto;
+        left: -100%;
+      }
+
+      .chat-widget-bottom-left .mobile-chat.open,
+      .chat-widget-top-left .mobile-chat.open {
+        left: 0;
+        right: auto;
+      }
+
+      /* ==================== */
+      /* DESKTOP STYLES - OLD COMPACT DESIGN */
+      /* ==================== */
+      
+      /* Chat Window - DESKTOP COMPACT */
+      .desktop-chat {
         position: absolute;
         bottom: 80px;
         right: 0;
@@ -243,27 +363,31 @@
         overflow: hidden;
       }
 
-      .chat-widget-bottom-left .chat-window,
-      .chat-widget-top-left .chat-window {
+      .chat-widget-bottom-left .desktop-chat,
+      .chat-widget-top-left .desktop-chat {
         right: auto;
         left: 0;
       }
 
-      .chat-widget-top-right .chat-window,
-      .chat-widget-top-left .chat-window {
+      .chat-widget-top-right .desktop-chat,
+      .chat-widget-top-left .desktop-chat {
         bottom: auto;
         top: 80px;
       }
 
-      .chat-window.open {
+      .desktop-chat.open {
         opacity: 1;
         visibility: visible;
         transform: translateY(0) scale(1);
       }
 
-      .chat-window.minimized {
+      .desktop-chat.minimized {
         height: 60px;
       }
+
+      /* ==================== */
+      /* SHARED STYLES */
+      /* ==================== */
 
       .chat-header {
         background: ${this.config.primaryColor};
@@ -287,19 +411,28 @@
         opacity: 0.8;
       }
 
-      .minimize-btn {
+      .close-btn, .minimize-btn {
         background: none;
         border: none;
         color: white;
-        font-size: 20px;
         cursor: pointer;
         padding: 4px 8px;
         border-radius: 4px;
         transition: background-color 0.2s;
+        -webkit-tap-highlight-color: transparent;
       }
 
-      .minimize-btn:hover {
+      .close-btn:hover, .minimize-btn:hover {
         background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .close-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .minimize-btn {
+        font-size: 20px;
       }
 
       .chat-messages {
@@ -311,7 +444,7 @@
         gap: 12px;
       }
 
-      .chat-window.minimized .chat-messages {
+      .desktop-chat.minimized .chat-messages {
         display: none;
       }
 
@@ -351,7 +484,7 @@
         flex-shrink: 0;
       }
 
-      .chat-window.minimized .chat-input-container {
+      .desktop-chat.minimized .chat-input-container {
         display: none;
       }
 
@@ -404,23 +537,55 @@
         height: 16px;
       }
 
-      /* Responsive */
-      @media (max-width: 480px) {
-        .chat-window {
-          width: 100vw;
-          height: 100vh;
-          bottom: 0;
-          right: 0;
-          left: 0;
-          top: 0;
-          border-radius: 0;
+      /* Mobile-specific adjustments */
+      @media (max-width: 768px) {
+        .chat-button {
+          width: 70px;
+          height: 70px;
         }
 
-        .chat-widget-bottom-left .chat-window,
-        .chat-widget-top-left .chat-window,
-        .chat-widget-top-right .chat-window {
-          right: 0;
-          left: 0;
+        .chat-header {
+          padding: 20px 16px;
+        }
+
+        .chat-header-info h3 {
+          font-size: 18px;
+        }
+
+        .chat-header-info p {
+          font-size: 14px;
+        }
+
+        .chat-messages {
+          padding: 16px 12px;
+        }
+
+        .message {
+          max-width: 85%;
+          padding: 12px 16px;
+          font-size: 16px;
+        }
+
+        .chat-input-container {
+          padding: 16px 12px;
+        }
+
+        #chat-input {
+          font-size: 16px;
+          padding: 14px 16px;
+          min-height: 48px;
+        }
+
+        .send-btn {
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          min-height: 44px;
+        }
+
+        .send-btn svg {
+          width: 20px;
+          height: 20px;
         }
       }
 
@@ -452,22 +617,32 @@
         0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
         40% { transform: scale(1); opacity: 1; }
       }
-
-      /* 🚫 REMOVED: All escalation button CSS styles */
     `;
             document.head.appendChild(style);
         }
         addEventListeners() {
-            var _a, _b, _c, _d;
+            var _a, _b, _c, _d, _e, _f;
             // Toggle chat window
             const toggleBtn = (_a = this.container) === null || _a === void 0 ? void 0 : _a.querySelector('#chat-toggle');
-            toggleBtn === null || toggleBtn === void 0 ? void 0 : toggleBtn.addEventListener('click', () => this.toggleChat());
-            // Minimize chat
-            const minimizeBtn = (_b = this.container) === null || _b === void 0 ? void 0 : _b.querySelector('#minimize-chat');
-            minimizeBtn === null || minimizeBtn === void 0 ? void 0 : minimizeBtn.addEventListener('click', () => this.minimizeChat());
-            // Send message
-            const sendBtn = (_c = this.container) === null || _c === void 0 ? void 0 : _c.querySelector('#send-message');
-            const input = (_d = this.container) === null || _d === void 0 ? void 0 : _d.querySelector('#chat-input');
+            if (this.isMobile) {
+                // MOBILE: Open chat
+                toggleBtn === null || toggleBtn === void 0 ? void 0 : toggleBtn.addEventListener('click', () => this.openChat());
+                // Close chat (mobile)
+                const closeBtn = (_b = this.container) === null || _b === void 0 ? void 0 : _b.querySelector('#close-chat');
+                closeBtn === null || closeBtn === void 0 ? void 0 : closeBtn.addEventListener('click', () => this.closeChat());
+                // Close on overlay click (mobile)
+                (_c = this.overlay) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this.closeChat());
+            }
+            else {
+                // DESKTOP: Toggle chat
+                toggleBtn === null || toggleBtn === void 0 ? void 0 : toggleBtn.addEventListener('click', () => this.toggleChat());
+                // Minimize chat (desktop)
+                const minimizeBtn = (_d = this.container) === null || _d === void 0 ? void 0 : _d.querySelector('#minimize-chat');
+                minimizeBtn === null || minimizeBtn === void 0 ? void 0 : minimizeBtn.addEventListener('click', () => this.minimizeChat());
+            }
+            // Send message (both)
+            const sendBtn = (_e = this.container) === null || _e === void 0 ? void 0 : _e.querySelector('#send-message');
+            const input = (_f = this.container) === null || _f === void 0 ? void 0 : _f.querySelector('#chat-input');
             sendBtn === null || sendBtn === void 0 ? void 0 : sendBtn.addEventListener('click', () => this.sendMessage());
             input === null || input === void 0 ? void 0 : input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
@@ -475,8 +650,31 @@
                 }
             });
         }
+        openChat() {
+            var _a, _b;
+            // MOBILE: Open sidebar
+            this.isOpen = true;
+            (_a = this.chatWindow) === null || _a === void 0 ? void 0 : _a.classList.add('open');
+            (_b = this.overlay) === null || _b === void 0 ? void 0 : _b.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            // Focus input when opened
+            setTimeout(() => {
+                var _a;
+                const input = (_a = this.container) === null || _a === void 0 ? void 0 : _a.querySelector('#chat-input');
+                input === null || input === void 0 ? void 0 : input.focus();
+            }, 300);
+        }
+        closeChat() {
+            var _a, _b;
+            // MOBILE: Close sidebar
+            this.isOpen = false;
+            (_a = this.chatWindow) === null || _a === void 0 ? void 0 : _a.classList.remove('open');
+            (_b = this.overlay) === null || _b === void 0 ? void 0 : _b.classList.remove('active');
+            document.body.style.overflow = '';
+        }
         toggleChat() {
             var _a, _b;
+            // DESKTOP: Toggle compact chat
             const button = (_a = this.container) === null || _a === void 0 ? void 0 : _a.querySelector('.chat-button');
             const window = (_b = this.container) === null || _b === void 0 ? void 0 : _b.querySelector('.chat-window');
             if (this.isOpen) {
@@ -500,6 +698,7 @@
         }
         minimizeChat() {
             var _a, _b;
+            // DESKTOP: Minimize compact chat
             const window = (_a = this.container) === null || _a === void 0 ? void 0 : _a.querySelector('.chat-window');
             const minimizeBtn = (_b = this.container) === null || _b === void 0 ? void 0 : _b.querySelector('#minimize-chat');
             if (this.isMinimized) {
@@ -585,7 +784,12 @@
         }
         setupWebSocket() {
             try {
-                const wsUrl = `wss://localhost/ws/${this.sessionId}`;
+                const apiUrl = this.config.apiUrl || (typeof window !== 'undefined' ? `https://${window.location.hostname}/api` : 'https://localhost/api');
+                const wsBaseUrl = apiUrl
+                    .replace('https://', 'wss://')
+                    .replace('http://', 'ws://')
+                    .replace('/api', '');
+                const wsUrl = `${wsBaseUrl}/ws/${this.sessionId}`;
                 this.websocket = new WebSocket(wsUrl);
                 this.websocket.onopen = () => {
                     console.log('WebSocket connected');
@@ -601,7 +805,6 @@
                 };
                 this.websocket.onclose = () => {
                     console.log('WebSocket disconnected');
-                    // Attempt to reconnect after 3 seconds
                     setTimeout(() => this.setupWebSocket(), 3000);
                 };
                 this.websocket.onerror = (error) => {
@@ -674,12 +877,22 @@
         // Public API methods
         open() {
             if (!this.isOpen) {
-                this.toggleChat();
+                if (this.isMobile) {
+                    this.openChat();
+                }
+                else {
+                    this.toggleChat();
+                }
             }
         }
         close() {
             if (this.isOpen) {
-                this.toggleChat();
+                if (this.isMobile) {
+                    this.closeChat();
+                }
+                else {
+                    this.toggleChat();
+                }
             }
         }
         destroy() {

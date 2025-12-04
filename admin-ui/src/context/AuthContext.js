@@ -2,13 +2,9 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import authService from '../services/authService';
 
 const initialState = {
-  user: {
-    id: 1,
-    username: 'developer',
-    email: 'dev@example.com'
-  },
-  isAuthenticated: true,
-  isLoading: false,
+  user: null,
+  isAuthenticated: false,
+  isLoading: true, // Start with loading true to check auth status
   error: null
 };
 

@@ -101,9 +101,18 @@ INSERT IGNORE INTO users (id, username, email, password) VALUES
 (1, 'admin', 'admin@chatwidget.com', 'temp_password');
 
 INSERT IGNORE INTO agents (id, username, email, password_hash, full_name, is_online) VALUES 
-(1, 'support_agent', 'agent@chatwidget.com', '$2b$12$LQv3c1yqBWVHxkd0L9k7uO9V2rQ2a2N2a2N2a2N2a2N2a2N2a2N2a2', 'Support Agent', TRUE);
+(1, 'support_agent', 'agent@chatwidget.com', '$2a$12$LQv3c1yqBWVHxkd0L9k7uO9V2rQ2a2N2a2N2a2N2a2N2a2N2a2N2a2', 'Support Agent', TRUE);
 
 INSERT IGNORE INTO widget_configs (id, user_id, site_key, business_name, widget_title, welcome_message) VALUES 
 (1, 1, 'demo-widget-key', 'Demo Business', 'Chat Support', 'Welcome! How can we assist you today?');
 
 INSERT IGNORE INTO agent_availability (agent_id, is_available) VALUES (1, TRUE);
+
+-- Update existing sessions to have correct status if needed
+UPDATE sessions SET status = 'waiting' WHERE status IS NULL OR status = '';
+
+-- Create index for better performance
+CREATE INDEX IF NOT EXISTS idx_sessions_status_ai ON sessions(status, ai_mode, assigned_agent_id);
+
+-- Ensure all necessary tables exist
+CREATE TABLE IF NOT EXISTS agents_backup LIKE agents;

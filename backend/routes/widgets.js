@@ -432,18 +432,18 @@ router.get('/stats/overview', async (req, res) => {
   try {
     const stats = await Widget.getStats(req.user.id);
     
-    // Mock additional stats (will be replaced with real data from chat logs)
-    const mockStats = {
-      ...stats,
-      total_chats: 1247,
-      total_messages: 8934,
-      average_response_time: '2.3 min',
-      customer_satisfaction: 4.2
-    };
     
     res.json({
       success: true,
-      data: { stats: mockStats }
+      data: { 
+        stats: {
+          ...stats,
+          total_chats: 0, // Will be calculated from real chat data
+          total_messages: 0, // Will be calculated from real message data
+          average_response_time: '0 min', // Will be calculated from real response times
+          customer_satisfaction: 0 // Will be calculated from real feedback
+        }
+      }
     });
   } catch (error) {
     console.error('Get stats error:', error);

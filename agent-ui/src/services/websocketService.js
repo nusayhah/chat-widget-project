@@ -1,3 +1,4 @@
+// src/services/websocketService.js
 class WebSocketService {
   constructor() {
     this.socket = null;
@@ -28,14 +29,25 @@ class WebSocketService {
       }
     }
 
-    console.log('🔌 Creating NEW WebSocket connection for agent:', agentId);
+    console.log('🔌 Creating REAL WebSocket connection for agent:', agentId);
     this.agentId = agentId;
     this.isConnecting = true;
 
     try {
-      const wsUrl = `${process.env.REACT_APP_WS_URL || 'ws://localhost:5000'}/agent/${agentId}`;
-      console.log('🔗 Connecting to:', wsUrl);
-      
+      // GET REAL TOKEN FROM LOCALSTORAGE
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('❌ No authentication token found for WebSocket');
+        this.isConnecting = false;
+        return;
+      }
+
+      console.log('🔑 Using REAL JWT token for WebSocket');
+    
+      const wsBaseUrl = process.env.REACT_APP_WS_URL || 'wss://192.168.100.124';
+      const wsUrl = `${wsBaseUrl}/ws/agent/${agentId}?token=${encodeURIComponent(token)}`;
+      console.log('🔗 Connecting to WebSocket:', wsUrl);
+    
       this.socket = new WebSocket(wsUrl);
 
       this.connectionTimeout = setTimeout(() => {
@@ -47,20 +59,23 @@ class WebSocketService {
       }, 10000);
 
       this.socket.onopen = () => {
-        console.log('✅ Agent WebSocket CONNECTED');
+        console.log('✅ Agent WebSocket CONNECTED with REAL JWT');
         clearTimeout(this.connectionTimeout);
         this.reconnectAttempts = 0;
         this.reconnectDelay = 1000;
         this.isConnecting = false;
-        
+      
         this.startKeepAlive();
 
+        // Send authentication confirmation with REAL token
         this.send({
           type: 'agent_identify',
           agentId: agentId,
+          token: token,
           timestamp: new Date().toISOString()
         });
 
+        // Request initial queue data
         this.send({
           type: 'get_waiting_sessions',
           agentId: agentId,
@@ -87,6 +102,12 @@ class WebSocketService {
         try {
           const data = JSON.parse(event.data);
           console.log('📨 Agent WebSocket MESSAGE:', data.type);
+        
+          if (data.type === 'pong') {
+            console.log('🏓 Received pong from server');
+            return;
+          }
+        
           this.handleMessage(data);
         } catch (error) {
           console.error('❌ Failed to parse agent message:', error);
@@ -99,17 +120,17 @@ class WebSocketService {
       this.handleReconnection();
     }
   }
-
   startKeepAlive() {
     this.keepAliveInterval = setInterval(() => {
       if (this.isConnected()) {
+        // Send ping to keep connection alive
         this.send({
           type: 'ping',
           agentId: this.agentId,
           timestamp: new Date().toISOString()
         });
       }
-    }, 45000);
+    }, 45000); // Every 45 seconds
   }
 
   stopKeepAlive() {
@@ -180,7 +201,6 @@ class WebSocketService {
     });
   }
 
-  // ✅ FIX 2: Return to AI functionality
   returnToAI(sessionId) {
     this.send({
       type: 'return_to_ai',

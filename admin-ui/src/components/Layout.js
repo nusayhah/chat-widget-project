@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Layout = ({ children }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: '🏠' },
@@ -25,63 +26,145 @@ const Layout = ({ children }) => {
     }
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg">
-        <div className="flex h-16 items-center justify-center border-b border-gray-200">
-          <h1 className="text-xl font-bold text-gray-900">Chat Widget Admin</h1>
-        </div>
-        
-        <nav className="mt-8 px-4">
-          <ul className="space-y-2">
-            {navigation.map((item) => (
-              <li key={item.name}>
-                <Link
-                  to={item.href}
-                  className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    isActive(item.href)
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <span className="mr-3 text-lg">{item.icon}</span>
-                  {item.name}
-                </Link>
+      {/* Desktop Sidebar - ALWAYS visible on desktop, HIDDEN on mobile */}
+      <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6">
+          <div className="flex h-16 shrink-0 items-center">
+            <h1 className="text-xl font-bold text-gray-900">Chat Widget Admin</h1>
+          </div>
+          <nav className="flex flex-1 flex-col">
+            <ul className="flex flex-1 flex-col gap-y-7">
+              <li>
+                <ul className="-mx-2 space-y-1">
+                  {navigation.map((item) => (
+                    <li key={item.name}>
+                      <Link
+                        to={item.href}
+                        className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold ${
+                          isActive(item.href)
+                            ? 'bg-gray-50 text-blue-600'
+                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="text-lg">{item.icon}</span>
+                        {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </li>
-            ))}
-          </ul>
-        </nav>
+              <li className="mt-auto">
+                <div className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white text-sm font-medium">
+                    {user?.username?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <span className="sr-only">Your profile</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{user?.username}</p>
+                    <p className="text-xs text-gray-500">{user?.email}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-400 hover:text-gray-600 ml-auto"
+                    title="Logout"
+                  >
+                    🚪
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
 
-        {/* User section */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
-                  {user?.username?.charAt(0).toUpperCase() || 'U'}
-                </span>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">{user?.username}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
-              </div>
+      {/* Mobile header - ONLY on mobile */}
+      <div className="sticky top-0 z-40 flex items-center gap-x-6 bg-white px-4 py-4 shadow-sm sm:px-6 lg:hidden">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+        >
+          <span className="text-xl">☰</span>
+        </button>
+        <div className="flex-1 text-sm font-semibold leading-6 text-gray-900 text-center">
+          Chat Widget Admin
+        </div>
+      </div>
+
+      {/* Mobile sidebar - slides in/out */}
+      <div className={`lg:hidden ${isSidebarOpen ? 'fixed inset-0 z-50' : 'hidden'}`}>
+        {/* Background overlay - only render when open */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-gray-900/80"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+        
+        {/* Sidebar container */}
+        <div className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col">
+          {/* Sidebar component */}
+          <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
+            <div className="flex h-16 shrink-0 items-center">
+              <h1 className="text-xl font-bold text-gray-900">Chat Widget Admin</h1>
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-gray-400 hover:text-gray-600 text-sm"
-              title="Logout"
-            >
-              🚪
-            </button>
+            <nav className="flex flex-1 flex-col">
+              <ul className="flex flex-1 flex-col gap-y-7">
+                <li>
+                  <ul className="-mx-2 space-y-1">
+                    {navigation.map((item) => (
+                      <li key={item.name}>
+                        <Link
+                          to={item.href}
+                          onClick={() => setIsSidebarOpen(false)}
+                          className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold ${
+                            isActive(item.href)
+                              ? 'bg-gray-50 text-blue-600'
+                              : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="text-lg">{item.icon}</span>
+                          {item.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+                <li className="mt-auto">
+                  <div className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 hover:bg-gray-50">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white text-sm font-medium">
+                      {user?.username?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <span className="sr-only">Your profile</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{user?.username}</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="text-gray-400 hover:text-gray-600 ml-auto"
+                      title="Logout"
+                    >
+                      🚪
+                    </button>
+                  </div>
+                </li>
+              </ul>
+            </nav>
           </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="pl-64">
-        <main className="py-8">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="lg:pl-64">
+        <main>
+          <div className="px-4 sm:px-6 lg:px-8 py-8">
             {children}
           </div>
         </main>

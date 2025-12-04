@@ -1,33 +1,39 @@
 import apiService from './api';
 
 class AuthService {
-  // Register new user
+  // Register new user - REAL API CALL
   async register(userData) {
     try {
       const response = await apiService.post('/auth/register', userData);
       
-      if (response.success && response.data.token) {
+      if (response.success) {
+        // Store the real JWT token
         apiService.setAuthToken(response.data.token);
+        return response;
+      } else {
+        throw new Error(response.message || 'Registration failed');
       }
-      
-      return response;
     } catch (error) {
-      throw new Error(error.message || 'Registration failed');
+      console.error('Registration API error:', error);
+      throw new Error(error.message || 'Failed to register user');
     }
   }
 
-  // Login user
+  // Login user - REAL API CALL
   async login(credentials) {
     try {
       const response = await apiService.post('/auth/login', credentials);
       
-      if (response.success && response.data.token) {
+      if (response.success) {
+        // Store the real JWT token
         apiService.setAuthToken(response.data.token);
+        return response;
+      } else {
+        throw new Error(response.message || 'Login failed');
       }
-      
-      return response;
     } catch (error) {
-      throw new Error(error.message || 'Login failed');
+      console.error('Login API error:', error);
+      throw new Error(error.message || 'Failed to login');
     }
   }
 
@@ -36,17 +42,19 @@ class AuthService {
     apiService.removeAuthToken();
   }
 
-  // Get current user profile
+  // Get current user profile - REAL API CALL
   async getCurrentUser() {
     try {
       const response = await apiService.get('/auth/me');
-      return response;
-    } catch (error) {
-      // If token is invalid, remove it
-      if (error.message.includes('token') || error.message.includes('401')) {
-        this.logout();
+      
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.message || 'Failed to get user profile');
       }
-      throw new Error(error.message || 'Failed to get user profile');
+    } catch (error) {
+      console.error('Get current user API error:', error);
+      throw new Error(error.message || 'Failed to fetch user profile');
     }
   }
 

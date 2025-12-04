@@ -12,6 +12,7 @@ services:
       MYSQL_PASSWORD: "chat123"
     volumes:
       - mariadb_data:/var/lib/mysql
+      - ./mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       start_period: 20s
@@ -28,12 +29,10 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
-    env_file: .env
-    command: >
-      sh -c "
-      sleep 10 &&
-      npm start
-      "
+    env_file: 
+      - ./backend/.env
+    environment:
+      - NODE_ENV=production
     networks:
       - chat-network
 
@@ -41,8 +40,9 @@ services:
     build: 
       context: ./admin-ui
       args:
-        - REACT_APP_API_URL=https://localhost/api
-        - REACT_APP_WS_URL=wss://localhost/ws
+        - REACT_APP_API_URL=${EXTERNAL_API_URL}
+        - REACT_APP_WS_URL=${EXTERNAL_WS_URL}
+        - REACT_APP_CDN_URL=${EXTERNAL_WIDGET_URL}
     container_name: admin_ui
     restart: always
     networks:
@@ -52,8 +52,8 @@ services:
     build:
       context: ./agent-ui
       args:
-        - REACT_APP_API_URL=https://localhost/api
-        - REACT_APP_WS_URL=wss://localhost/ws
+        - REACT_APP_API_URL=${EXTERNAL_API_URL}
+        - REACT_APP_WS_URL=${EXTERNAL_WS_URL}
     container_name: agent_ui
     restart: always
     networks:
@@ -72,6 +72,7 @@ services:
       - agent-ui
     volumes:
       - ./static:/var/www/static
+      - ./ssl:/etc/ssl
     networks:
       - chat-network
 
