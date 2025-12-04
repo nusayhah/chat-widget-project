@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';  // ⬅ ADDED useCallback
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import ColorPicker from '../components/ColorPicker';
 import WidgetPreview from '../components/WidgetPreview';
 import widgetService from '../services/widgetService';
-import { generateEmbedCode, copyToClipboard, getWidgetInstallationInstructions } from '../utils/helpers';
+// ⬇ REMOVED unused imports: generateEmbedCode, copyToClipboard, getWidgetInstallationInstructions
 
 const WidgetBuilder = () => {
   const { siteKey } = useParams();
@@ -31,18 +31,8 @@ const WidgetBuilder = () => {
 
   const watchedValues = watch();
 
-  useEffect(() => {
-    if (isEditing) {
-      fetchWidgetConfig();
-    }
-  }, [siteKey, isEditing]);
-
-  useEffect(() => {
-    // Update widget config when form values change
-    setWidgetConfig(prev => ({ ...prev, ...watchedValues }));
-  }, [watchedValues]);
-
-  const fetchWidgetConfig = async () => {
+  // ⬇ WRAPPED in useCallback to fix dependency warning
+  const fetchWidgetConfig = useCallback(async () => {
     try {
       setLoading(true);
       const response = await widgetService.getWidget(siteKey);
@@ -75,7 +65,18 @@ const WidgetBuilder = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [siteKey, setLoading, setValue, setWidgetConfig]); // ⬅ ADDED dependencies
+
+  useEffect(() => {
+    if (isEditing) {
+      fetchWidgetConfig();
+    }
+  }, [siteKey, isEditing, fetchWidgetConfig]); // ⬅ ADDED fetchWidgetConfig to dependencies
+
+  useEffect(() => {
+    // Update widget config when form values change
+    setWidgetConfig(prev => ({ ...prev, ...watchedValues }));
+  }, [watchedValues]);
 
   const onSubmit = async (data) => {
     try {
