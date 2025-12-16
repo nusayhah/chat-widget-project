@@ -25,6 +25,22 @@ class ChatHandler {
     this.setupWebSocketHandlers();
   }
 
+ 
+  broadcastAgentStatus(agentId, status) {
+    console.log(`📢 Broadcasting agent ${agentId} status: ${status}`);
+  
+    this.agents.forEach((agent, id) => {
+      if (agent.ws.readyState === WebSocket.OPEN) {
+        this.sendMessage(agent.ws, {
+          type: 'agent_status_update',
+          agentId: agentId,
+          status: status,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+  }
+
   setupWebSocketHandlers() {
     this.wss.on('connection', (ws, req) => {
       const url = new URL(req.url, `http://${req.headers.host}`);
@@ -484,6 +500,17 @@ class ChatHandler {
         connectedAt: new Date(),
         lastPing: new Date()
       });
+
+      // 🔥 ADD THIS: Send connection status to the newly connected agent
+      this.sendMessage(ws, {
+        type: 'connection_status',
+        status: 'connected',
+        agentId: agentId,
+        timestamp: new Date().toISOString()
+      });
+
+      // 🔥 ADD THIS: Notify all agents about this agent's status
+      this.broadcastAgentStatus(agentId, 'connected');
     
       const agentQueue = require('../utils/agentQueue');
       agentQueue.addAvailableAgent(agentId);
@@ -834,6 +861,9 @@ class ChatHandler {
     }
     
     this.agents.delete(agentId);
+
+    // 🔥 ADD THIS: Notify all agents about disconnection
+    this.broadcastAgentStatus(agentId, 'disconnected');
     
     const agentQueue = require('../utils/agentQueue');
     agentQueue.removeAvailableAgent(agentId);

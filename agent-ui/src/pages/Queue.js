@@ -34,6 +34,7 @@ const Queue = () => {
     }
   }, []);
 
+  // Queue.js - Update the useEffect (around line 30-110):
   useEffect(() => {
     console.log('🎯 Queue useEffect - Agent ID:', agent?.id);
 
@@ -43,15 +44,16 @@ const Queue = () => {
     }
 
     let isMounted = true;
-    let reconnectInterval;
 
-    // 🆕 IMPROVED WebSocket connection logic
-    const setupWebSocket = () => {
-      console.log('🔌 Setting up WebSocket for agent:', agent.id);
-      
-      // Connect WebSocket
-      websocketService.connect(agent.id);
-      
+    // 🆕 IMPROVED: Setup WebSocket connection and listeners
+    const setupWebSocketListeners = () => {
+      console.log('🔌 Setting up WebSocket listeners for agent:', agent.id);
+    
+      // Connect WebSocket (only if not already connected)
+      if (websocketService.getConnectionStatus() !== 'connected') {
+        websocketService.connect(agent.id);
+      }
+    
       // Set up event handlers
       const handleWaitingSessions = (data) => {
         if (isMounted && data.sessions) {
@@ -62,7 +64,7 @@ const Queue = () => {
 
       const handleConnectionStatus = (data) => {
         if (isMounted) {
-          console.log('🔗 Connection status:', data.status);
+          console.log('🔗 Connection status update:', data.status);
           setConnectionStatus(data.status);
         }
       };
@@ -88,7 +90,12 @@ const Queue = () => {
       fetchWaitingSessions();
     };
 
-    setupWebSocket();
+    setupWebSocketListeners();
+
+    // 🆕 ADD: Set initial connection status from service
+    const initialStatus = websocketService.getConnectionStatus();
+    setConnectionStatus(initialStatus);
+    console.log('🔗 Initial connection status:', initialStatus);
 
     // 🆕 ADD: Periodic refresh to keep data fresh
     const refreshInterval = setInterval(() => {
@@ -97,29 +104,15 @@ const Queue = () => {
       }
     }, 30000); // Every 30 seconds
 
-    // 🆕 ADD: Auto-reconnect on disconnection
-    reconnectInterval = setInterval(() => {
-      const status = websocketService.getConnectionStatus();
-      if (status === 'disconnected' && isMounted && agent?.id) {
-        console.log('🔄 Attempting WebSocket reconnection...');
-        websocketService.connect(agent.id);
-      }
-    }, 10000); // Every 10 seconds
-
     return () => {
       console.log('🧹 Cleaning up Queue component');
       isMounted = false;
-      
+    
       // Clear intervals
       clearInterval(refreshInterval);
-      clearInterval(reconnectInterval);
-      
-      // Clean up WebSocket handlers
-      websocketService.off('waiting_sessions');
-      websocketService.off('connection_status');
-      websocketService.off('queue_update');
-      
-      // Don't disconnect WebSocket - keep it alive for other components
+    
+      // 🆕 FIX: DON'T remove listeners here - keep them for other components
+      // Only disconnect when agent logs out (handled by AuthContext)
     };
   }, [agent?.id, fetchWaitingSessions]);
 

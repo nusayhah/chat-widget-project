@@ -11,6 +11,7 @@ const Layout = () => {
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
   // 🆕 UPDATED: Connect WebSocket when agent is available
+  /*
   useEffect(() => {
     if (agent?.id) {
       console.log('🔗 Layout: Agent detected, scheduling WebSocket connection');
@@ -44,6 +45,7 @@ const Layout = () => {
       setConnectionStatus('disconnected');
     };
   }, [agent]);
+  */
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: '🏠' },
@@ -58,8 +60,10 @@ const Layout = () => {
   };
 
   // 🆕 HELPER: Get connection display info
+  // Layout.js - Update the getConnectionDisplay function (around line 60):
   const getConnectionDisplay = () => {
-    const status = connectionStatus || websocketService.getConnectionStatus();
+    // Always get real-time status from websocketService
+    const status = websocketService.getConnectionStatus();
     switch (status) {
       case 'connected': return { text: 'Connected', color: 'text-green-600', bg: 'bg-green-500' };
       case 'connecting': return { text: 'Connecting...', color: 'text-yellow-600', bg: 'bg-yellow-500' };

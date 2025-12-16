@@ -12,6 +12,17 @@ class WebSocketService {
     this.isConnecting = false;
   }
 
+  // Add this method to WebSocketService class:
+  debugConnectionState() {
+    console.log('🔍 WebSocket DEBUG:');
+    console.log('- Agent ID:', this.agentId);
+    console.log('- Socket exists:', !!this.socket);
+    console.log('- Ready state:', this.socket?.readyState);
+    console.log('- Connection status:', this.getConnectionStatus());
+    console.log('- Is connecting:', this.isConnecting);
+    console.log('- Reconnect attempts:', this.reconnectAttempts);
+  }
+
   connect(agentId) {
     if (this.isConnecting) {
       console.log('⏳ WebSocket connection already in progress');
@@ -67,6 +78,9 @@ class WebSocketService {
       
         this.startKeepAlive();
 
+        // 🔥 ADD THIS LINE: Notify about connection
+        this.notifyConnectionStatus('connected');
+
         // Send authentication confirmation with REAL token
         this.send({
           type: 'agent_identify',
@@ -88,6 +102,10 @@ class WebSocketService {
         clearTimeout(this.connectionTimeout);
         this.stopKeepAlive();
         this.isConnecting = false;
+
+        // 🔥 ADD THIS: Notify about disconnection
+        this.notifyConnectionStatus('disconnected');
+
         this.handleReconnection();
       };
 
@@ -96,6 +114,9 @@ class WebSocketService {
         clearTimeout(this.connectionTimeout);
         this.stopKeepAlive();
         this.isConnecting = false;
+
+        // 🔥 ADD THIS: Notify about error/disconnection
+        this.notifyConnectionStatus('disconnected');
       };
 
       this.socket.onmessage = (event) => {
@@ -160,10 +181,20 @@ class WebSocketService {
   }
 
   notifyConnectionStatus(status) {
+    console.log(`🔗 WebSocketService: Notifying connection status: ${status}`);
+  
+    // Call all registered handlers for 'connection_status'
     const handler = this.messageHandlers.get('connection_status');
     if (handler) {
       handler({ status });
     }
+  
+    // Also trigger for backward compatibility
+    this.messageHandlers.forEach((handler, type) => {
+      if (type === 'connection_status' || type === 'agent_status_update') {
+        handler({ status });
+      }
+    });
   }
 
   handleMessage(data) {
