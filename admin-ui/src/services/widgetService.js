@@ -47,6 +47,7 @@ class WidgetService {
   }
 
   // Update widget - REAL API CALL
+  // In services/widgetService.js - Update the updateWidget method
   async updateWidget(siteKey, widgetData) {
     try {
       // Transform frontend data to match backend schema
@@ -60,6 +61,23 @@ class WidgetService {
         enable_prechat_form: widgetData.enablePrechatForm,
         prechat_fields: widgetData.prechatFields || []
       };
+
+      // 🆕 CRITICAL: Handle is_active/isActive field
+      // Check for both possible field names
+      if (widgetData.is_active !== undefined) {
+        backendData.is_active = widgetData.is_active;
+      } else if (widgetData.isActive !== undefined) {
+        backendData.is_active = widgetData.isActive;
+      }
+
+      // 🆕 Remove undefined values to avoid sending empty fields
+      Object.keys(backendData).forEach(key => {
+        if (backendData[key] === undefined) {
+          delete backendData[key];
+        }
+      });
+
+      console.log('🔧 Sending widget update data:', backendData);
 
       const response = await apiService.put(`/widgets/${siteKey}`, backendData);
       return response;

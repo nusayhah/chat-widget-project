@@ -92,11 +92,12 @@ router.get('/active-chats', authenticateAgent, async (req, res) => {
 });
 
 // Get waiting sessions for agent queue - FIXED QUERY
+// Fix the query ordering - replace the ORDER BY clause
 router.get('/waiting-sessions', authenticateAgent, async (req, res) => {
   try {
     console.log('📊 Fetching waiting sessions for agent:', req.agent.id);
     
-    // FIXED QUERY: Find ALL waiting sessions (regardless of ai_mode or escalation status)
+    // FIXED QUERY: Order by most recent first (DESC)
     const [sessions] = await pool.execute(
       `SELECT 
         s.session_id, 
@@ -106,17 +107,15 @@ router.get('/waiting-sessions', authenticateAgent, async (req, res) => {
         s.escalated_at,
         s.ai_mode,
         s.status,
+        s.assigned_agent_id,
         w.business_name 
        FROM sessions s
        LEFT JOIN widget_configs w ON s.site_key = w.site_key
        WHERE s.status = 'waiting' 
          AND (s.assigned_agent_id IS NULL OR s.assigned_agent_id = '')
        ORDER BY 
-         CASE 
-           WHEN s.ai_mode = FALSE AND s.escalated_at IS NOT NULL THEN 1
-           ELSE 2
-         END,
-         COALESCE(s.escalated_at, s.started_at) ASC
+         COALESCE(s.escalated_at, s.started_at) DESC,  -- Most recent first
+         s.started_at DESC
        LIMIT 50`,
       []
     );
@@ -124,8 +123,8 @@ router.get('/waiting-sessions', authenticateAgent, async (req, res) => {
     console.log(`📊 Found ${sessions.length} total waiting sessions in database`);
     
     // Log session details for debugging
-    sessions.forEach(session => {
-      console.log(`  - ${session.session_id}: ai_mode=${session.ai_mode}, escalated_at=${session.escalated_at}, status=${session.status}`);
+    sessions.forEach((session, index) => {
+      console.log(`  ${index + 1}. ${session.session_id}: created=${session.started_at}, escalated=${session.escalated_at}`);
     });
 
     const waitingSessions = sessions.map(session => ({

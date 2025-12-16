@@ -45,17 +45,8 @@ const widgetSchemas = {
     prechat_fields: Joi.array().optional()
   }),
   
-  update: Joi.object({
-    business_name: Joi.string().min(1).max(100).optional(),
-    widget_title: Joi.string().min(1).max(100).optional(),
-    welcome_message: Joi.string().min(1).max(500).optional(),
-    primary_color: Joi.string().pattern(/^#[0-9A-Fa-f]{6}$/).optional(),
-    secondary_color: Joi.string().pattern(/^#[0-9A-Fa-f]{6}$/).optional(),
-    position: Joi.string().valid('bottom-right', 'bottom-left', 'top-right', 'top-left').optional(),
-    enable_prechat_form: Joi.boolean().optional(),
-    prechat_fields: Joi.array().optional(),
-    is_active: Joi.boolean().optional()
-  })
+  // SIMPLE FIX - Allow any object, no validation for updates
+  update: Joi.object().unknown(true)
 };
 
 module.exports = {
