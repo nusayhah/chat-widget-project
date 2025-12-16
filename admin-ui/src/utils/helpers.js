@@ -31,7 +31,7 @@ export const formatDate = (dateString) => {
 /**
  * Generate embed code for widget
  */
-export const generateEmbedCode = (siteKey, cdnUrl = 'https://your-domain.com') => {
+export const generateEmbedCode = (siteKey, cdnUrl = process.env.REACT_APP_CDN_URL || 'https://your-domain.com') => {
   return `<script defer src="${cdnUrl}/widget.js" data-site-key="${siteKey}"></script>`;
 };
 
@@ -144,4 +144,78 @@ export const getContrastRatio = (color1, color2) => {
 export const isAccessibleColorCombination = (foreground, background) => {
   const ratio = getContrastRatio(foreground, background);
   return ratio >= 4.5; // WCAG AA standard for normal text
+};
+
+/**
+ * Get widget installation instructions
+ */
+export const getWidgetInstallationInstructions = (siteKey) => {
+  const embedCode = generateEmbedCode(siteKey);
+  
+  return {
+    steps: [
+      'Copy the embed code below',
+      'Paste it just before the closing </body> tag on your website',
+      'The chat widget will automatically appear on your site',
+      'Customize the widget appearance in your dashboard anytime'
+    ],
+    embedCode: embedCode,
+    example: `<!-- Place this in your website's HTML -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Your Website</title>
+</head>
+<body>
+  <!-- Your website content -->
+  
+  ${embedCode}
+</body>
+</html>`,
+    notes: [
+      'The widget will load asynchronously and not block your page',
+      'It will automatically connect to your chat server',
+      'Visitors can start chatting immediately',
+      'You can manage all chats from your admin dashboard'
+    ]
+  };
+};
+
+/**
+ * Format number with commas for display
+ */
+export const formatNumber = (num) => {
+  return new Intl.NumberFormat().format(num);
+};
+
+/**
+ * Get relative time string (e.g., "2 hours ago")
+ */
+export const getRelativeTime = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  
+  if (diffInSeconds < 60) return 'just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  
+  return formatDate(dateString);
+};
+
+/**
+ * Truncate text with ellipsis
+ */
+export const truncateText = (text, maxLength) => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+};
+
+/**
+ * Generate random ID
+ */
+export const generateId = () => {
+  return Math.random().toString(36).substring(2, 15) + 
+         Math.random().toString(36).substring(2, 15);
 };

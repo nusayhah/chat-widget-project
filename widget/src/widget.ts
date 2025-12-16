@@ -28,15 +28,17 @@ class ChatWidget {
   private config: WidgetConfig;
   private container: HTMLElement | null = null;
   private chatWindow: HTMLElement | null = null;
+  private overlay: HTMLElement | null = null;
   private isOpen: boolean = false;
   private isMinimized: boolean = true;
   private websocket: WebSocket | null = null;
   private messages: Message[] = [];
   private sessionId: string;
+  private isMobile: boolean;
 
   constructor(config: WidgetConfig) {
     this.config = {
-      apiUrl: 'https://localhost/api',
+      apiUrl: config.apiUrl || `https://${window.location.hostname}/api`, 
       businessName: 'Support Team',
       widgetTitle: 'Chat with us',
       welcomeMessage: 'Hello! How can we help you today?',
@@ -48,6 +50,7 @@ class ChatWidget {
       ...config
     };
     this.sessionId = this.generateSessionId();
+    this.isMobile = window.innerWidth <= 768;
     this.init();
   }
 
@@ -103,8 +106,11 @@ class ChatWidget {
     // Append to body
     document.body.appendChild(this.container);
     
-    // Get chat window reference
+    // Get references
     this.chatWindow = this.container.querySelector('.chat-window') as HTMLElement;
+    if (this.isMobile) {
+      this.overlay = this.container.querySelector('.chat-overlay') as HTMLElement;
+    }
     
     // Add event listeners
     this.addEventListeners();
@@ -113,50 +119,103 @@ class ChatWidget {
   private getWidgetHTML(): string {
     const positionClass = `chat-widget-${this.config.position}`;
     
-    return `
-      <div class="chat-widget ${positionClass}">
-        <!-- Chat Button -->
-        <div class="chat-button" id="chat-toggle">
-          <svg class="chat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
-          </svg>
-          <svg class="close-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
+    if (this.isMobile) {
+      // MOBILE: Sidebar design with overlay
+      return `
+        <div class="chat-widget ${positionClass}">
+          <!-- Chat Button -->
+          <div class="chat-button" id="chat-toggle">
+            <svg class="chat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+            </svg>
+          </div>
 
-        <!-- Chat Window -->
-        <div class="chat-window">
-          <div class="chat-header">
-            <div class="chat-header-info">
-              <h3>${this.config.widgetTitle}</h3>
-              <p>${this.config.businessName}</p>
-            </div>
-            <button class="minimize-btn" id="minimize-chat">−</button>
-          </div>
-          
-          <div class="chat-messages" id="chat-messages">
-            <!-- Messages will be added here -->
-          </div>
-          
-          <div class="chat-input-container">
-            <div class="chat-input-wrapper">
-              <input 
-                type="text" 
-                id="chat-input" 
-                placeholder="Type your message..." 
-                maxlength="500"
-              />
-              <button id="send-message" class="send-btn">
+          <!-- Overlay (mobile only) -->
+          <div class="chat-overlay"></div>
+
+          <!-- Chat Window (mobile sidebar) -->
+          <div class="chat-window mobile-chat">
+            <div class="chat-header">
+              <div class="chat-header-info">
+                <h3>${this.config.widgetTitle}</h3>
+                <p>${this.config.businessName}</p>
+              </div>
+              <button class="close-btn" id="close-chat">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
               </button>
             </div>
+            
+            <div class="chat-messages" id="chat-messages">
+              <!-- Messages will be added here -->
+            </div>
+            
+            <div class="chat-input-container">
+              <div class="chat-input-wrapper">
+                <input 
+                  type="text" 
+                  id="chat-input" 
+                  placeholder="Type your message..." 
+                  maxlength="500"
+                />
+                <button id="send-message" class="send-btn">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+    } else {
+      // DESKTOP: Old compact design
+      return `
+        <div class="chat-widget ${positionClass}">
+          <!-- Chat Button -->
+          <div class="chat-button" id="chat-toggle">
+            <svg class="chat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+            </svg>
+            <svg class="close-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Chat Window (desktop compact) -->
+          <div class="chat-window desktop-chat">
+            <div class="chat-header">
+              <div class="chat-header-info">
+                <h3>${this.config.widgetTitle}</h3>
+                <p>${this.config.businessName}</p>
+              </div>
+              <button class="minimize-btn" id="minimize-chat">−</button>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages">
+              <!-- Messages will be added here -->
+            </div>
+            
+            <div class="chat-input-container">
+              <div class="chat-input-wrapper">
+                <input 
+                  type="text" 
+                  id="chat-input" 
+                  placeholder="Type your message..." 
+                  maxlength="500"
+                />
+                <button id="send-message" class="send-btn">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
   }
 
   private addStyles(): void {
@@ -193,6 +252,7 @@ class ChatWidget {
         left: 20px;
       }
 
+      /* Chat Button */
       .chat-button {
         width: 60px;
         height: 60px;
@@ -206,6 +266,8 @@ class ChatWidget {
         justify-content: center;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         transition: all 0.3s ease;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
         position: relative;
       }
 
@@ -236,7 +298,65 @@ class ChatWidget {
         transform: rotate(0deg);
       }
 
-      .chat-window {
+      /* ==================== */
+      /* MOBILE STYLES - SIDEBAR DESIGN */
+      /* ==================== */
+      
+      /* Overlay - MOBILE ONLY */
+      .chat-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 999998;
+      }
+
+      .chat-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      /* Chat Window - MOBILE SIDEBAR */
+      .mobile-chat {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 100%;
+        height: 100%;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 999999;
+        overflow: hidden;
+      }
+
+      .mobile-chat.open {
+        right: 0;
+      }
+
+      .chat-widget-bottom-left .mobile-chat,
+      .chat-widget-top-left .mobile-chat {
+        right: auto;
+        left: -100%;
+      }
+
+      .chat-widget-bottom-left .mobile-chat.open,
+      .chat-widget-top-left .mobile-chat.open {
+        left: 0;
+        right: auto;
+      }
+
+      /* ==================== */
+      /* DESKTOP STYLES - OLD COMPACT DESIGN */
+      /* ==================== */
+      
+      /* Chat Window - DESKTOP COMPACT */
+      .desktop-chat {
         position: absolute;
         bottom: 80px;
         right: 0;
@@ -254,27 +374,31 @@ class ChatWidget {
         overflow: hidden;
       }
 
-      .chat-widget-bottom-left .chat-window,
-      .chat-widget-top-left .chat-window {
+      .chat-widget-bottom-left .desktop-chat,
+      .chat-widget-top-left .desktop-chat {
         right: auto;
         left: 0;
       }
 
-      .chat-widget-top-right .chat-window,
-      .chat-widget-top-left .chat-window {
+      .chat-widget-top-right .desktop-chat,
+      .chat-widget-top-left .desktop-chat {
         bottom: auto;
         top: 80px;
       }
 
-      .chat-window.open {
+      .desktop-chat.open {
         opacity: 1;
         visibility: visible;
         transform: translateY(0) scale(1);
       }
 
-      .chat-window.minimized {
+      .desktop-chat.minimized {
         height: 60px;
       }
+
+      /* ==================== */
+      /* SHARED STYLES */
+      /* ==================== */
 
       .chat-header {
         background: ${this.config.primaryColor};
@@ -298,19 +422,28 @@ class ChatWidget {
         opacity: 0.8;
       }
 
-      .minimize-btn {
+      .close-btn, .minimize-btn {
         background: none;
         border: none;
         color: white;
-        font-size: 20px;
         cursor: pointer;
         padding: 4px 8px;
         border-radius: 4px;
         transition: background-color 0.2s;
+        -webkit-tap-highlight-color: transparent;
       }
 
-      .minimize-btn:hover {
+      .close-btn:hover, .minimize-btn:hover {
         background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .close-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .minimize-btn {
+        font-size: 20px;
       }
 
       .chat-messages {
@@ -322,7 +455,7 @@ class ChatWidget {
         gap: 12px;
       }
 
-      .chat-window.minimized .chat-messages {
+      .desktop-chat.minimized .chat-messages {
         display: none;
       }
 
@@ -362,7 +495,7 @@ class ChatWidget {
         flex-shrink: 0;
       }
 
-      .chat-window.minimized .chat-input-container {
+      .desktop-chat.minimized .chat-input-container {
         display: none;
       }
 
@@ -415,23 +548,55 @@ class ChatWidget {
         height: 16px;
       }
 
-      /* Responsive */
-      @media (max-width: 480px) {
-        .chat-window {
-          width: 100vw;
-          height: 100vh;
-          bottom: 0;
-          right: 0;
-          left: 0;
-          top: 0;
-          border-radius: 0;
+      /* Mobile-specific adjustments */
+      @media (max-width: 768px) {
+        .chat-button {
+          width: 70px;
+          height: 70px;
         }
 
-        .chat-widget-bottom-left .chat-window,
-        .chat-widget-top-left .chat-window,
-        .chat-widget-top-right .chat-window {
-          right: 0;
-          left: 0;
+        .chat-header {
+          padding: 20px 16px;
+        }
+
+        .chat-header-info h3 {
+          font-size: 18px;
+        }
+
+        .chat-header-info p {
+          font-size: 14px;
+        }
+
+        .chat-messages {
+          padding: 16px 12px;
+        }
+
+        .message {
+          max-width: 85%;
+          padding: 12px 16px;
+          font-size: 16px;
+        }
+
+        .chat-input-container {
+          padding: 16px 12px;
+        }
+
+        #chat-input {
+          font-size: 16px;
+          padding: 14px 16px;
+          min-height: 48px;
+        }
+
+        .send-btn {
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          min-height: 44px;
+        }
+
+        .send-btn svg {
+          width: 20px;
+          height: 20px;
         }
       }
 
@@ -463,8 +628,6 @@ class ChatWidget {
         0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
         40% { transform: scale(1); opacity: 1; }
       }
-
-      /* 🚫 REMOVED: All escalation button CSS styles */
     `;
     
     document.head.appendChild(style);
@@ -473,13 +636,27 @@ class ChatWidget {
   private addEventListeners(): void {
     // Toggle chat window
     const toggleBtn = this.container?.querySelector('#chat-toggle') as HTMLElement;
-    toggleBtn?.addEventListener('click', () => this.toggleChat());
+    
+    if (this.isMobile) {
+      // MOBILE: Open chat
+      toggleBtn?.addEventListener('click', () => this.openChat());
+      
+      // Close chat (mobile)
+      const closeBtn = this.container?.querySelector('#close-chat') as HTMLElement;
+      closeBtn?.addEventListener('click', () => this.closeChat());
+      
+      // Close on overlay click (mobile)
+      this.overlay?.addEventListener('click', () => this.closeChat());
+    } else {
+      // DESKTOP: Toggle chat
+      toggleBtn?.addEventListener('click', () => this.toggleChat());
+      
+      // Minimize chat (desktop)
+      const minimizeBtn = this.container?.querySelector('#minimize-chat') as HTMLElement;
+      minimizeBtn?.addEventListener('click', () => this.minimizeChat());
+    }
 
-    // Minimize chat
-    const minimizeBtn = this.container?.querySelector('#minimize-chat') as HTMLElement;
-    minimizeBtn?.addEventListener('click', () => this.minimizeChat());
-
-    // Send message
+    // Send message (both)
     const sendBtn = this.container?.querySelector('#send-message') as HTMLElement;
     const input = this.container?.querySelector('#chat-input') as HTMLInputElement;
     
@@ -491,7 +668,30 @@ class ChatWidget {
     });
   }
 
+  private openChat(): void {
+    // MOBILE: Open sidebar
+    this.isOpen = true;
+    this.chatWindow?.classList.add('open');
+    this.overlay?.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Focus input when opened
+    setTimeout(() => {
+      const input = this.container?.querySelector('#chat-input') as HTMLInputElement;
+      input?.focus();
+    }, 300);
+  }
+
+  private closeChat(): void {
+    // MOBILE: Close sidebar
+    this.isOpen = false;
+    this.chatWindow?.classList.remove('open');
+    this.overlay?.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
   private toggleChat(): void {
+    // DESKTOP: Toggle compact chat
     const button = this.container?.querySelector('.chat-button') as HTMLElement;
     const window = this.container?.querySelector('.chat-window') as HTMLElement;
     
@@ -515,6 +715,7 @@ class ChatWidget {
   }
 
   private minimizeChat(): void {
+    // DESKTOP: Minimize compact chat
     const window = this.container?.querySelector('.chat-window') as HTMLElement;
     const minimizeBtn = this.container?.querySelector('#minimize-chat') as HTMLElement;
     
@@ -608,7 +809,14 @@ class ChatWidget {
 
   private setupWebSocket(): void {
     try {
-      const wsUrl = `wss://localhost/ws/${this.sessionId}`;
+      const apiUrl = this.config.apiUrl || (typeof window !== 'undefined' ? `https://${window.location.hostname}/api` : 'https://localhost/api');
+    
+      const wsBaseUrl = apiUrl
+        .replace('https://', 'wss://')
+        .replace('http://', 'ws://')
+        .replace('/api', '');
+      
+      const wsUrl = `${wsBaseUrl}/ws/${this.sessionId}`;
       this.websocket = new WebSocket(wsUrl);
       
       this.websocket.onopen = () => {
@@ -626,7 +834,6 @@ class ChatWidget {
       
       this.websocket.onclose = () => {
         console.log('WebSocket disconnected');
-        // Attempt to reconnect after 3 seconds
         setTimeout(() => this.setupWebSocket(), 3000);
       };
       
@@ -707,13 +914,21 @@ class ChatWidget {
   // Public API methods
   public open(): void {
     if (!this.isOpen) {
-      this.toggleChat();
+      if (this.isMobile) {
+        this.openChat();
+      } else {
+        this.toggleChat();
+      }
     }
   }
 
   public close(): void {
     if (this.isOpen) {
-      this.toggleChat();
+      if (this.isMobile) {
+        this.closeChat();
+      } else {
+        this.toggleChat();
+      }
     }
   }
 
@@ -747,4 +962,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 export default ChatWidget;
-

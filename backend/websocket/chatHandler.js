@@ -1,6 +1,8 @@
 const WebSocket = require('ws');
 const OpenRouterClient = require('../src/ai-client');
 const Message = require('../models/Message');
+const domainConfig = require('../config/domain');
+const jwt = require('jsonwebtoken');
 
 let Session;
 try {
@@ -23,27 +25,42 @@ class ChatHandler {
     this.setupWebSocketHandlers();
   }
 
+ 
+  broadcastAgentStatus(agentId, status) {
+    console.log(`📢 Broadcasting agent ${agentId} status: ${status}`);
+  
+    this.agents.forEach((agent, id) => {
+      if (agent.ws.readyState === WebSocket.OPEN) {
+        this.sendMessage(agent.ws, {
+          type: 'agent_status_update',
+          agentId: agentId,
+          status: status,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+  }
+
   setupWebSocketHandlers() {
     this.wss.on('connection', (ws, req) => {
       const url = new URL(req.url, `http://${req.headers.host}`);
       const path = url.pathname;
-      
+    
       console.log(`🔌 New WebSocket connection: ${path}`);
-      
+    
       if (path.startsWith('/ws/agent/')) {
-        const agentId = path.split('/').pop();
-        console.log(`🔵 Agent connection detected: ${agentId}`);
-        this.handleAgentConnection(ws, agentId);
+        // Handle agent connection with authentication
+        this.handleAgentConnection(ws, req);
         return;
       }
-      
+    
       if (path.startsWith('/ws/')) {
-        const sessionId = path.split('/').pop();
+        const sessionId = path.split('/')[2];
         console.log(`🟡 Customer WebSocket connection for session: ${sessionId}`);
-        
+      
         ws.sessionId = sessionId;
         ws.isAlive = true;
-        
+      
         ws.on('message', (data) => {
           try {
             const message = JSON.parse(data.toString());
@@ -52,29 +69,31 @@ class ChatHandler {
             console.error('Failed to parse WebSocket message:', error);
           }
         });
-        
+      
         ws.on('close', () => {
           this.handleDisconnection(ws);
         });
-        
+      
         ws.on('pong', () => {
           ws.isAlive = true;
         });
-        
+      
+        // Send welcome message to customer
         this.sendMessage(ws, {
           type: 'message',
           id: 'welcome-' + Date.now(),
           message: 'Welcome! How can I help you today?',
           timestamp: new Date().toISOString()
         });
-        
+      
         return;
       }
-      
+    
       console.log('❌ Unknown WebSocket connection path:', path);
       ws.close(1002, 'Unknown connection path');
     });
-    
+  
+    // Keep-alive ping interval
     setInterval(() => {
       this.wss.clients.forEach((ws) => {
         if (!ws.isAlive) {
@@ -116,14 +135,13 @@ class ChatHandler {
       case 'typing':
         this.handleTyping(session, message);
         break;
-      // 🚫 REMOVED: 'escalate' case - No more manual escalation
       default:
         console.log('Unknown message type:', type);
     }
   }
 
   async handleUserMessage(session, message) {
-    // ✅ FIX 2: Check if session is escalated before processing
+    // Check if session is escalated before processing
     if (session.isEscalated) {
       console.log(`📨 Escalated session ${session.ws.sessionId} - message waiting for agent`);
       
@@ -152,7 +170,7 @@ class ChatHandler {
 
       this.notifyAgentsAboutNewMessage(session.ws.sessionId, userMessage);
       
-      return; // ✅ STOP AI PROCESSING for escalated sessions
+      return; // STOP AI PROCESSING for escalated sessions
     }
 
     // Normal AI processing for non-escalated sessions
@@ -196,7 +214,7 @@ class ChatHandler {
   async sendAgentResponse(session, userMessage) {
     console.log(`🎯 sendAgentResponse CALLED for: "${userMessage}"`);
     
-    // ✅ FIX 2: Don't send AI responses if session is escalated
+    // Don't send AI responses if session is escalated
     if (session.isEscalated) {
       console.log(`🚫 Skipping AI response - session ${session.ws.sessionId} is escalated`);
       return;
@@ -216,14 +234,12 @@ class ChatHandler {
         timestamp: msg.timestamp
       }));
 
-      // ✅ FIX 1: AI-powered escalation detection
       const aiResult = await OpenRouterClient.generateResponse(
         userMessage, 
         recentMessages, 
         session.ws.sessionId
       );
 
-      // ✅ FIX 1: Check if AI wants to escalate
       if (aiResult.shouldEscalate) {
         console.log(`🚨 AI triggered escalation for session: ${session.ws.sessionId}`);
         
@@ -244,7 +260,7 @@ class ChatHandler {
         });
 
         await this.handleAutomaticEscalation(session);
-        return; // ✅ STOP normal AI processing
+        return;
       }
 
       const aiResponse = aiResult;
@@ -256,7 +272,6 @@ class ChatHandler {
       });
 
       setTimeout(async () => {
-        // ✅ FIX 2: Double check session state
         if (session.isEscalated) {
           console.log(`🚫 Canceling AI response - session escalated during delay`);
           return;
@@ -352,18 +367,17 @@ class ChatHandler {
     }
   }
 
-  // ✅ FIX 1: AI-powered automatic escalation
   async handleAutomaticEscalation(session) {
     try {
       console.log(`🚨 Starting automatic escalation for: ${session.ws.sessionId}`);
       
-      // ✅ FIX 2: Mark session as escalated immediately
       session.isEscalated = true;
       
       const response = await fetch(
-        `http://server:5000/api/widgets/escalate/${session.siteKey}/${session.ws.sessionId}`,
+        `${domainConfig.apiUrl}/widgets/escalate/${session.siteKey}/${session.ws.sessionId}`,
         { method: 'POST' }
       );
+
       if (response.ok) {
         const result = await response.json();
         
@@ -381,8 +395,6 @@ class ChatHandler {
       session.isEscalated = false;
     }
   }
-
-  // 🚫 REMOVED: handleEscalation method - No more manual escalation
 
   handleTyping(session, message) {
     console.log(`User typing in session ${session.ws.sessionId}: ${message.isTyping}`);
@@ -439,70 +451,111 @@ class ChatHandler {
     }
   }
 
-  // ✅ FIX 2: Improved agent connection stability
-  handleAgentConnection(ws, agentId) {
-    console.log(`🔵 Agent ${agentId} connected to WebSocket`);
-
-
-    // 🆕 ADD KEEP-ALIVE
-    ws.isAlive = true;
-    ws.on('pong', () => {
-      ws.isAlive = true;
-      console.log(`🏓 Keep-alive pong from agent ${agentId}`);
-    }); 
-  
-    this.agents.set(agentId, {
-      ws,
-      activeSessions: new Set(),
-      isAvailable: true,
-      connectedAt: new Date(),
-      lastPing: new Date()
-    });
-
-    const agentQueue = require('../utils/agentQueue');
-    agentQueue.addAvailableAgent(agentId);
-
-    this.sendMessage(ws, {
-      type: 'agent_connected',
-      agentId: agentId,
-      timestamp: new Date().toISOString()
-    });
-
-    this.sendWaitingSessionsToAgent(agentId);
-
-    ws.on('message', (data) => {
+  handleAgentConnection(ws, req) {
+    try {
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const path = url.pathname;
+      const token = url.searchParams.get('token');
+    
+      console.log(`🔌 Agent WebSocket connection: ${path}`);
+    
+      if (!token) {
+        console.log('❌ No token provided for agent WebSocket');
+        ws.close(1008, 'Authentication required');
+        return;
+      }
+    
+      // Verify JWT token
+      let decoded;
       try {
-        const message = JSON.parse(data.toString());
-        this.handleAgentMessage(agentId, message);
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
       } catch (error) {
-        console.error('Failed to parse agent message:', error);
+        console.log('❌ Invalid JWT token for agent WebSocket:', error.message);
+        ws.close(1008, 'Invalid token');
+        return;
       }
-    });
-
-    ws.on('close', () => {
-      this.handleAgentDisconnection(agentId);
-    });
-
-    ws.on('error', (error) => {
-      console.error(`WebSocket error for agent ${agentId}:`, error);
-    });
-
-    ws.on('pong', () => {
-      const agent = this.agents.get(agentId);
-      if (agent) {
-        agent.lastPing = new Date();
+    
+      const agentId = path.split('/').pop();
+    
+      // Verify agent ID matches token
+      if (decoded.agentId.toString() !== agentId) {
+        console.log(`❌ Token agentId (${decoded.agentId}) doesn't match path agentId (${agentId})`);
+        ws.close(1008, 'Agent ID mismatch');
+        return;
       }
-    });
+    
+      console.log(`🔵 Agent ${agentId} authenticated via WebSocket`);
+    
+      // Set up WebSocket connection
+      ws.isAlive = true;
+      ws.on('pong', () => {
+        ws.isAlive = true;
+        console.log(`🏓 Keep-alive pong from agent ${agentId}`);
+      }); 
+    
+      this.agents.set(agentId, {
+        ws,
+        activeSessions: new Set(),
+        isAvailable: true,
+        connectedAt: new Date(),
+        lastPing: new Date()
+      });
 
-    const pingInterval = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.ping();
-      } else {
-        clearInterval(pingInterval);
-      }
-    }, 25000);
+      // 🔥 ADD THIS: Send connection status to the newly connected agent
+      this.sendMessage(ws, {
+        type: 'connection_status',
+        status: 'connected',
+        agentId: agentId,
+        timestamp: new Date().toISOString()
+      });
 
-    ws.pingInterval = pingInterval;
+      // 🔥 ADD THIS: Notify all agents about this agent's status
+      this.broadcastAgentStatus(agentId, 'connected');
+    
+      const agentQueue = require('../utils/agentQueue');
+      agentQueue.addAvailableAgent(agentId);
+    
+      this.sendMessage(ws, {
+        type: 'agent_connected',
+        agentId: agentId,
+        timestamp: new Date().toISOString()
+      });
+    
+      this.sendWaitingSessionsToAgent(agentId);
+    
+      // Set up message handler
+      ws.on('message', (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+          this.handleAgentMessage(agentId, message);
+        } catch (error) {
+          console.error('Failed to parse agent message:', error);
+        }
+      });
+    
+      ws.on('close', () => {
+        this.handleAgentDisconnection(agentId);
+      });
+    
+      ws.on('error', (error) => {
+        console.error(`WebSocket error for agent ${agentId}:`, error);
+      });
+    
+      // Keep-alive ping interval
+      const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.ping();
+        } else {
+          clearInterval(pingInterval);
+        }
+      }, 25000);
+    
+      ws.pingInterval = pingInterval;
+      
+    } catch (error) {
+      console.error('Agent WebSocket connection error:', error);
+      ws.close(1011, 'Internal server error');
+    }
   }
 
   sendWaitingSessionsToAgent(agentId) {
@@ -542,7 +595,7 @@ class ChatHandler {
     if (!agent) return;
 
     console.log(`📨 Agent ${agentId} message:`, message.type);
-    console.log(`📨 Full message:`, JSON.stringify(message)); // 🆕 ADD THIS
+    
     switch (message.type) {
       case 'agent_identify':
         console.log(`🔵 Agent ${agentId} identified`);
@@ -562,22 +615,17 @@ class ChatHandler {
       case 'typing_stop':
         this.handleAgentTyping(agentId, message, false);
         break;
-      // ✅ FIX 2: Return to AI feature
       case 'return_to_ai':
         this.handleReturnToAI(agentId, message.sessionId);
         break;
-
-
-      // 🆕 ENHANCED PING HANDLER:
       case 'ping':
-        console.log(`✅ 🏓 PING HANDLER WORKING! Ping received from agent ${agentId}`);
-      // Send pong response to maintain connection
+        console.log(`✅ Ping received from agent ${agentId}`);
         this.sendMessage(agent.ws, {
           type: 'pong',
           timestamp: new Date().toISOString(),
           agentId: agentId
         });
-        console.log(`✅ 🏓 Pong sent to agent ${agentId}`);
+        console.log(`✅ Pong sent to agent ${agentId}`);
         break;
     }
   }
@@ -585,7 +633,7 @@ class ChatHandler {
   async handleAcceptChat(agentId, sessionId) {
     const agentQueue = require('../utils/agentQueue');
     const Session = require('../models/Session');
-    const Message = require('../models/Message'); // 🆕 Add this import
+    const Message = require('../models/Message');
   
     try {
       console.log(`🟢 Agent ${agentId} accepting chat: ${sessionId}`);
@@ -601,10 +649,8 @@ class ChatHandler {
           session.isEscalated = true;
           session.assignedAgentId = agentId;
         
-          // 🆕 LOAD FULL MESSAGE HISTORY FROM DATABASE
           const fullMessageHistory = await Message.findBySessionId(sessionId);
         
-          // 🆕 COMBINE DATABASE MESSAGES WITH CURRENT SESSION MESSAGES
           const allMessages = [
             ...fullMessageHistory.map(dbMsg => ({
               id: dbMsg.id,
@@ -621,7 +667,6 @@ class ChatHandler {
             ...session.messages.filter(msg => !msg.fromDatabase)
           ];
         
-          // 🆕 UPDATE SESSION WITH COMPLETE HISTORY
           session.messages = allMessages;
         
           this.sendMessage(session.ws, {
@@ -635,13 +680,12 @@ class ChatHandler {
           if (agent) {
             agent.activeSessions.add(sessionId);
           
-            // 🆕 SEND COMPLETE MESSAGE HISTORY TO AGENT
             this.sendMessage(agent.ws, {
               type: 'chat_accepted',
               sessionId: sessionId,
               visitorName: session.visitor_name || 'Customer',
               businessName: session.business_name || 'Business',
-              messages: allMessages, // 🆕 Send full history, not just recent
+              messages: allMessages,
               fullHistory: true,
               timestamp: new Date().toISOString()
             });
@@ -666,7 +710,6 @@ class ChatHandler {
     }
   }
 
-  // ✅ FIX 2: Return to AI functionality
   async handleReturnToAI(agentId, sessionId) {
     try {
       console.log(`🔄 Agent ${agentId} returning session ${sessionId} to AI`);
@@ -684,7 +727,7 @@ class ChatHandler {
       if (result.affectedRows > 0) {
         const session = this.sessions.get(sessionId);
         if (session) {
-          session.isEscalated = false; // ✅ Return to AI mode
+          session.isEscalated = false;
           session.assignedAgentId = null;
           
           this.sendMessage(session.ws, {
@@ -750,12 +793,10 @@ class ChatHandler {
       
       session.messages.push(agentMessage);
 
-
-          // 🆕 ADD THIS: Save agent message to database
       Message.create({
         session_id: sessionId,
-        sender_type: 'agent',  // Important: 'agent' not 'ai'
-        sender_id: agentId,    // Store which agent sent it
+        sender_type: 'agent',
+        sender_id: agentId,
         message: text.trim(),
         message_type: 'text',
         metadata: { 
@@ -820,6 +861,9 @@ class ChatHandler {
     }
     
     this.agents.delete(agentId);
+
+    // 🔥 ADD THIS: Notify all agents about disconnection
+    this.broadcastAgentStatus(agentId, 'disconnected');
     
     const agentQueue = require('../utils/agentQueue');
     agentQueue.removeAvailableAgent(agentId);
@@ -832,7 +876,6 @@ class ChatHandler {
     const agentQueue = require('../utils/agentQueue');
     const queueStats = agentQueue.getQueueStats();
     
-    // 🆕 Force immediate database query instead of cached sessions
     const Session = require('../models/Session');
     
     Session.getWaitingSessions()
@@ -842,7 +885,6 @@ class ChatHandler {
         this.agents.forEach((agent, agentId) => {
           console.log(`📨 Sending real-time update to agent ${agentId}`);
           
-          // Send both queue_update and waiting_sessions with fresh data
           this.sendMessage(agent.ws, {
             type: 'queue_update',
             stats: queueStats,

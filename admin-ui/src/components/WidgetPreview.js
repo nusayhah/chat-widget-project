@@ -18,25 +18,22 @@ const WidgetPreview = ({ config }) => {
   };
 
   return (
-    <div className="relative bg-gray-100 rounded-lg h-96 overflow-hidden">
-      {/* Mock website background */}
-      <div className="p-6">
-        <div className="bg-white rounded-lg p-4 mb-4">
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-        </div>
-        <div className="bg-white rounded-lg p-4">
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+    <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg h-96 overflow-hidden border-2 border-dashed border-gray-300">
+      {/* Simple clean background - NO MOCK CONTENT */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center text-gray-400">
+          <div className="text-2xl mb-2">🌐</div>
+          <p className="text-sm">Your Website Preview</p>
+          <p className="text-xs mt-1">Chat widget will appear here</p>
         </div>
       </div>
 
-      {/* Chat Widget */}
+      {/* Chat Widget - Uses REAL config data */}
       <div className={`absolute ${getPositionClasses()}`}>
         {/* Chat Window */}
         {isOpen && (
           <div 
-            className="mb-4 bg-white rounded-lg shadow-lg w-80 h-96"
+            className="mb-4 bg-white rounded-lg shadow-lg w-80 h-96 border border-gray-200"
             style={{ borderTop: `4px solid ${config.primaryColor}` }}
           >
             {/* Header */}
@@ -54,7 +51,7 @@ const WidgetPreview = ({ config }) => {
             </div>
 
             {/* Messages */}
-            <div className="p-4 h-64 overflow-y-auto">
+            <div className="p-4 h-64 overflow-y-auto bg-gray-50">
               <div className="mb-4">
                 <div 
                   className="inline-block px-3 py-2 rounded-lg text-white text-sm max-w-xs"
@@ -66,16 +63,16 @@ const WidgetPreview = ({ config }) => {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-gray-200 bg-white">
               <div className="flex space-x-2">
                 <input
                   type="text"
                   placeholder="Type your message..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled
                 />
                 <button
-                  className="px-4 py-2 text-white rounded-lg text-sm"
+                  className="px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors hover:opacity-90"
                   style={{ backgroundColor: config.primaryColor }}
                   disabled
                 >
@@ -89,7 +86,7 @@ const WidgetPreview = ({ config }) => {
         {/* Chat Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-14 h-14 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
+          className="w-14 h-14 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-105"
           style={{ backgroundColor: config.primaryColor }}
         >
           <ChatBubbleLeftRightIcon className="h-6 w-6" />

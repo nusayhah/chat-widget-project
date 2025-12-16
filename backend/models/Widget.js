@@ -111,31 +111,36 @@ class Widget {
   }
 
   // Update widget
+  // In models/Widget.js - Update the update() method
   async update(updateData) {
     const fields = [];
     const values = [];
-    
+  
     Object.keys(updateData).forEach(key => {
       if (key !== 'id' && key !== 'site_key' && updateData[key] !== undefined) {
         if (key === 'prechat_fields') {
           fields.push(`${key} = ?`);
           values.push(JSON.stringify(updateData[key]));
+        } else if (key === 'is_active') {
+          // Handle boolean is_active field properly
+          fields.push(`${key} = ?`);
+          values.push(updateData[key] ? 1 : 0);
         } else {
           fields.push(`${key} = ?`);
           values.push(updateData[key]);
         }
       }
     });
-    
+  
     if (fields.length === 0) {
       throw new Error('No fields to update');
     }
-    
+  
     fields.push('updated_at = NOW()');
     values.push(this.id);
-    
+  
     const query = `UPDATE widget_configs SET ${fields.join(', ')} WHERE id = ?`;
-    
+  
     try {
       await pool.execute(query, values);
       return await Widget.findById(this.id);

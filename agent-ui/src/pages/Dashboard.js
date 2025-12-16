@@ -14,13 +14,22 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-        const response = await fetch(`${apiUrl}/api/agents/stats`, {
+        const apiUrl = process.env.REACT_APP_API_URL || 'https://192.168.100.124/api';
+        const token = localStorage.getItem('token');
+      
+        if (!token) {
+          console.log('No token found, skipping stats fetch');
+          setLoading(false);
+          return;
+        }
+      
+        const response = await fetch(`${apiUrl}/agents/stats`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
-        
+      
         if (response.ok) {
           const data = await response.json();
           if (data.success) {

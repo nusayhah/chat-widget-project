@@ -18,7 +18,6 @@ const Message = require('../models/Message');
 
 // Escalation routes (public - called by widget)
 // POST /api/widgets/escalate/:siteKey/:sessionId
-// POST /api/widgets/escalate/:siteKey/:sessionId
 router.post('/escalate/:siteKey/:sessionId', async (req, res) => {
   try {
     res.header('Access-Control-Allow-Origin', '*');
@@ -269,8 +268,6 @@ router.post('/test-escalation-full', async (req, res) => {
 // 🚨 AUTHENTICATION APPLIES TO ROUTES BELOW THIS LINE ONLY
 router.use(authenticateToken);
 
-// ... rest of your existing routes stay the same
-
 // Get all widgets for the authenticated user
 router.get('/', async (req, res) => {
   try {
@@ -354,7 +351,7 @@ router.post('/', validate(widgetSchemas.create), async (req, res) => {
   }
 });
 
-// Update widget
+// Update widget - FIXED VERSION
 router.put('/:siteKey', validate(widgetSchemas.update), async (req, res) => {
   try {
     const { siteKey } = req.params;
@@ -375,7 +372,40 @@ router.put('/:siteKey', validate(widgetSchemas.update), async (req, res) => {
       });
     }
     
-    const updatedWidget = await widget.update(req.body);
+    // 🆕 FIX: Transform incoming data to handle both camelCase and snake_case
+    const updateData = {};
+    
+    // Map camelCase to snake_case for compatibility
+    if (req.body.businessName !== undefined) updateData.business_name = req.body.businessName;
+    if (req.body.business_name !== undefined) updateData.business_name = req.body.business_name;
+    
+    if (req.body.widgetTitle !== undefined) updateData.widget_title = req.body.widgetTitle;
+    if (req.body.widget_title !== undefined) updateData.widget_title = req.body.widget_title;
+    
+    if (req.body.welcomeMessage !== undefined) updateData.welcome_message = req.body.welcomeMessage;
+    if (req.body.welcome_message !== undefined) updateData.welcome_message = req.body.welcome_message;
+    
+    if (req.body.primaryColor !== undefined) updateData.primary_color = req.body.primaryColor;
+    if (req.body.primary_color !== undefined) updateData.primary_color = req.body.primary_color;
+    
+    if (req.body.secondaryColor !== undefined) updateData.secondary_color = req.body.secondaryColor;
+    if (req.body.secondary_color !== undefined) updateData.secondary_color = req.body.secondary_color;
+    
+    // Direct mappings (same name in both)
+    if (req.body.position !== undefined) updateData.position = req.body.position;
+    if (req.body.enable_prechat_form !== undefined) updateData.enable_prechat_form = req.body.enable_prechat_form;
+    if (req.body.prechat_fields !== undefined) updateData.prechat_fields = req.body.prechat_fields;
+    
+    // 🆕 CRITICAL FIX: Handle is_active field properly
+    if (req.body.is_active !== undefined) {
+      updateData.is_active = req.body.is_active;
+    } else if (req.body.isActive !== undefined) {
+      updateData.is_active = req.body.isActive;
+    }
+    
+    console.log('🔧 Processing widget update with data:', updateData);
+    
+    const updatedWidget = await widget.update(updateData);
     
     res.json({
       success: true,
@@ -386,7 +416,7 @@ router.put('/:siteKey', validate(widgetSchemas.update), async (req, res) => {
     console.error('Update widget error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update widget'
+      message: 'Failed to update widget: ' + error.message
     });
   }
 });
@@ -432,18 +462,17 @@ router.get('/stats/overview', async (req, res) => {
   try {
     const stats = await Widget.getStats(req.user.id);
     
-    // Mock additional stats (will be replaced with real data from chat logs)
-    const mockStats = {
-      ...stats,
-      total_chats: 1247,
-      total_messages: 8934,
-      average_response_time: '2.3 min',
-      customer_satisfaction: 4.2
-    };
-    
     res.json({
       success: true,
-      data: { stats: mockStats }
+      data: { 
+        stats: {
+          ...stats,
+          total_chats: 0, // Will be calculated from real chat data
+          total_messages: 0, // Will be calculated from real message data
+          average_response_time: '0 min', // Will be calculated from real response times
+          customer_satisfaction: 0 // Will be calculated from real feedback
+        }
+      }
     });
   } catch (error) {
     console.error('Get stats error:', error);

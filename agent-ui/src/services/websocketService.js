@@ -1,3 +1,4 @@
+// src/services/websocketService.js
 class WebSocketService {
   constructor() {
     this.socket = null;
@@ -9,6 +10,17 @@ class WebSocketService {
     this.connectionTimeout = null;
     this.keepAliveInterval = null;
     this.isConnecting = false;
+  }
+
+  // Add this method to WebSocketService class:
+  debugConnectionState() {
+    console.log('🔍 WebSocket DEBUG:');
+    console.log('- Agent ID:', this.agentId);
+    console.log('- Socket exists:', !!this.socket);
+    console.log('- Ready state:', this.socket?.readyState);
+    console.log('- Connection status:', this.getConnectionStatus());
+    console.log('- Is connecting:', this.isConnecting);
+    console.log('- Reconnect attempts:', this.reconnectAttempts);
   }
 
   connect(agentId) {
@@ -28,14 +40,25 @@ class WebSocketService {
       }
     }
 
-    console.log('🔌 Creating NEW WebSocket connection for agent:', agentId);
+    console.log('🔌 Creating REAL WebSocket connection for agent:', agentId);
     this.agentId = agentId;
     this.isConnecting = true;
 
     try {
-      const wsUrl = `${process.env.REACT_APP_WS_URL || 'ws://localhost:5000'}/agent/${agentId}`;
-      console.log('🔗 Connecting to:', wsUrl);
-      
+      // GET REAL TOKEN FROM LOCALSTORAGE
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('❌ No authentication token found for WebSocket');
+        this.isConnecting = false;
+        return;
+      }
+
+      console.log('🔑 Using REAL JWT token for WebSocket');
+    
+      const wsBaseUrl = process.env.REACT_APP_WS_URL || 'wss://192.168.100.124';
+      const wsUrl = `${wsBaseUrl}/ws/agent/${agentId}?token=${encodeURIComponent(token)}`;
+      console.log('🔗 Connecting to WebSocket:', wsUrl);
+    
       this.socket = new WebSocket(wsUrl);
 
       this.connectionTimeout = setTimeout(() => {
@@ -47,20 +70,26 @@ class WebSocketService {
       }, 10000);
 
       this.socket.onopen = () => {
-        console.log('✅ Agent WebSocket CONNECTED');
+        console.log('✅ Agent WebSocket CONNECTED with REAL JWT');
         clearTimeout(this.connectionTimeout);
         this.reconnectAttempts = 0;
         this.reconnectDelay = 1000;
         this.isConnecting = false;
-        
+      
         this.startKeepAlive();
 
+        // 🔥 ADD THIS LINE: Notify about connection
+        this.notifyConnectionStatus('connected');
+
+        // Send authentication confirmation with REAL token
         this.send({
           type: 'agent_identify',
           agentId: agentId,
+          token: token,
           timestamp: new Date().toISOString()
         });
 
+        // Request initial queue data
         this.send({
           type: 'get_waiting_sessions',
           agentId: agentId,
@@ -73,6 +102,10 @@ class WebSocketService {
         clearTimeout(this.connectionTimeout);
         this.stopKeepAlive();
         this.isConnecting = false;
+
+        // 🔥 ADD THIS: Notify about disconnection
+        this.notifyConnectionStatus('disconnected');
+
         this.handleReconnection();
       };
 
@@ -81,12 +114,21 @@ class WebSocketService {
         clearTimeout(this.connectionTimeout);
         this.stopKeepAlive();
         this.isConnecting = false;
+
+        // 🔥 ADD THIS: Notify about error/disconnection
+        this.notifyConnectionStatus('disconnected');
       };
 
       this.socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           console.log('📨 Agent WebSocket MESSAGE:', data.type);
+        
+          if (data.type === 'pong') {
+            console.log('🏓 Received pong from server');
+            return;
+          }
+        
           this.handleMessage(data);
         } catch (error) {
           console.error('❌ Failed to parse agent message:', error);
@@ -99,17 +141,17 @@ class WebSocketService {
       this.handleReconnection();
     }
   }
-
   startKeepAlive() {
     this.keepAliveInterval = setInterval(() => {
       if (this.isConnected()) {
+        // Send ping to keep connection alive
         this.send({
           type: 'ping',
           agentId: this.agentId,
           timestamp: new Date().toISOString()
         });
       }
-    }, 45000);
+    }, 45000); // Every 45 seconds
   }
 
   stopKeepAlive() {
@@ -139,10 +181,20 @@ class WebSocketService {
   }
 
   notifyConnectionStatus(status) {
+    console.log(`🔗 WebSocketService: Notifying connection status: ${status}`);
+  
+    // Call all registered handlers for 'connection_status'
     const handler = this.messageHandlers.get('connection_status');
     if (handler) {
       handler({ status });
     }
+  
+    // Also trigger for backward compatibility
+    this.messageHandlers.forEach((handler, type) => {
+      if (type === 'connection_status' || type === 'agent_status_update') {
+        handler({ status });
+      }
+    });
   }
 
   handleMessage(data) {
@@ -180,7 +232,6 @@ class WebSocketService {
     });
   }
 
-  // ✅ FIX 2: Return to AI functionality
   returnToAI(sessionId) {
     this.send({
       type: 'return_to_ai',

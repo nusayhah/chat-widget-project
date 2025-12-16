@@ -6,6 +6,13 @@
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
+  
+  /* Mobile viewport fix */
+  @media (max-width: 768px) {
+    html {
+      font-size: 14px;
+    }
+  }
 }
 
 @layer components {
@@ -19,9 +26,48 @@
   
   .input-field {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+    
+    /* Mobile-specific fixes */
+    @media (max-width: 768px) {
+      font-size: 16px; /* Prevents zoom on iOS */
+      padding: 12px 16px;
+      min-height: 48px; /* Better touch targets */
+    }
   }
   
   .card {
     @apply bg-white rounded-lg shadow-md p-6;
+  }
+}
+
+/* Mobile-responsive container for login */
+@layer utilities {
+  .mobile-container {
+    @apply min-h-screen flex items-center justify-center bg-gray-50 p-4;
+    
+    @media (max-width: 768px) {
+      padding: 16px;
+      align-items: flex-start;
+      padding-top: 20vh;
+    }
+  }
+  
+  .mobile-form {
+    @apply w-full max-w-md;
+    
+    @media (max-width: 768px) {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+  }
+
+  /* Mobile responsive sidebar */
+  .sidebar-transition {
+    transition: transform 0.3s ease-in-out;
+  }
+
+  /* Ensure main content is properly spaced on mobile */
+  .mobile-content-padding {
+    padding-top: 4rem; /* Height of mobile header */
   }
 }

@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { generateToken } = require('../middleware/auth');
+const Agent = require('../models/Agent');
+const { generateUserToken, generateAgentToken, generateToken } = require('../middleware/auth');
 const { validate, userSchemas } = require('../middleware/validation');
 
 // Register new user
@@ -20,7 +21,7 @@ router.post('/register', validate(userSchemas.register), async (req, res) => {
     
     // Create new user
     const user = await User.create({ username, email, password });
-    const token = generateToken(user.id);
+    const token = generateUserToken(user.id); // USE generateUserToken
     
     res.status(201).json({
       success: true,
@@ -63,7 +64,7 @@ router.post('/login', validate(userSchemas.login), async (req, res) => {
     }
     
     // Generate token
-    const token = generateToken(user.id);
+    const token = generateUserToken(user.id); // USE generateUserToken
     
     res.json({
       success: true,
@@ -89,34 +90,29 @@ router.post('/agent-login', async (req, res) => {
     
     console.log('🔐 Agent login attempt:', email);
     
-    // Simple mock agent authentication
-    const mockAgents = [
-      {
-        id: 1,
-        email: 'agent@company.com',
-        full_name: 'Support Agent',
-        role: 'agent'
-      },
-      {
-        id: 2, 
-        email: 'agent2@company.com',
-        full_name: 'Second Agent',
-        role: 'agent'
-      }
-    ];
-    
-    // Find agent by email (mock for now)
-    const agent = mockAgents.find(a => a.email === email);
+    // Find agent in AGENTS table (not users)
+    const agent = await Agent.findByEmail(email);
     
     if (!agent) {
+      console.log('❌ Agent not found:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid agent credentials'
       });
     }
     
-    // For demo - accept any password
-    const token = generateToken(agent.id);
+    // Verify password against password_hash
+    const isPasswordValid = await agent.verifyPassword(password);
+    if (!isPasswordValid) {
+      console.log('❌ Invalid password for agent:', email);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid agent credentials'
+      });
+    }
+    
+    // Generate REAL JWT token
+    const token = generateAgentToken(agent.id); // USE generateAgentToken
     
     console.log('✅ Agent login successful:', agent.email);
     
@@ -124,7 +120,7 @@ router.post('/agent-login', async (req, res) => {
       success: true,
       message: 'Agent login successful',
       data: {
-        agent: agent,
+        agent: agent.toJSON(),
         token
       }
     });
@@ -132,7 +128,7 @@ router.post('/agent-login', async (req, res) => {
     console.error('Agent login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error during agent login'
+      message: 'Internal server error during agent login: ' + error.message
     });
   }
 });

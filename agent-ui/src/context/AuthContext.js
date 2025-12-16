@@ -62,27 +62,51 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (credentials) => {
     dispatch({ type: 'LOGIN_START' });
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://localhost/api';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/agent-login`, {
+      console.log('🔐 Attempting REAL agent login');
+    
+      // REAL API CALL
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://192.168.100.124/api';
+      const response = await fetch(`${apiUrl}/auth/agent-login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(credentials)
       });
-      
+
+      console.log('📡 Login response status:', response.status);
+    
+      if (!response.ok) {
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
       const data = await response.json();
-      
-      if (data.success) {
-
-        // 🆕 ADD THESE 2 LINES:
-        localStorage.setItem('token', data.data.token);
-        localStorage.setItem('agent', JSON.stringify(data.data.agent));
-
-        dispatch({ type: 'LOGIN_SUCCESS', payload: data.data.agent });
-        return { success: true };
-      } else {
+      console.log('📦 Login response data:', data);
+    
+      if (!data.success) {
         throw new Error(data.message || 'Login failed');
       }
+
+      // REAL TOKEN & AGENT DATA
+      const { agent, token } = data.data;
+    
+      console.log('✅ Login successful, agent:', agent.email, 'token received');
+    
+      // Store in localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('agent', JSON.stringify(agent));
+
+      dispatch({ type: 'LOGIN_SUCCESS', payload: agent });
+      return { success: true };
     } catch (error) {
+      console.error('❌ Login failed:', error.message);
       dispatch({ type: 'LOGIN_FAILURE', payload: error.message });
       throw error;
     }
