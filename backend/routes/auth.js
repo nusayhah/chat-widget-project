@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Agent = require('../models/Agent');
-const { generateUserToken, generateAgentToken, generateToken } = require('../middleware/auth');
+const { generateUserToken, generateAgentToken, generateToken, authenticateToken } = require('../middleware/auth'); 
 const { validate, userSchemas } = require('../middleware/validation');
 
 // Register new user
@@ -147,6 +147,79 @@ router.get('/me', require('../middleware/auth').authenticateToken, async (req, r
     res.status(500).json({
       success: false,
       message: 'Internal server error'
+    });
+  }
+});
+
+// Add these routes BEFORE the module.exports line at the bottom
+
+// GET /api/auth/users - Get all users (admin only)
+router.get('/users', authenticateToken, async (req, res) => {
+  try {
+    const { pool } = require('../config/database');
+    
+    // Get all users from database (excluding password for security)
+    const [rows] = await pool.execute(
+      'SELECT id, username, email, created_at, updated_at FROM users ORDER BY created_at DESC'
+    );
+    
+    res.json({
+      success: true,
+      data: { users: rows }
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users'
+    });
+  }
+});
+
+// DELETE /api/auth/users/:id - Delete user (admin only)
+router.delete('/users/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const currentUserId = req.user.id;
+    
+    // Prevent deleting yourself
+    if (userId === currentUserId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete your own account'
+      });
+    }
+    
+    const { pool } = require('../config/database');
+    
+    // Check if user exists
+    const [checkRows] = await pool.execute(
+      'SELECT id FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    if (checkRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Delete the user
+    const [result] = await pool.execute(
+      'DELETE FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete user'
     });
   }
 });

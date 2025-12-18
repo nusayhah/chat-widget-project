@@ -133,7 +133,7 @@ const LoginForm = ({ onSwitchToRegister }) => {
             </button>
           </div>
 
-          <div className="text-center">
+          {/*<div className="text-center">
             <button
               type="button"
               onClick={onSwitchToRegister}
@@ -141,7 +141,7 @@ const LoginForm = ({ onSwitchToRegister }) => {
             >
               Don't have an account? Sign up
             </button>
-          </div>
+          </div>*/}
         </form>
       </div>
     </div>

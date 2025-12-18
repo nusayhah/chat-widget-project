@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import WidgetBuilder from './pages/WidgetBuilder';
 import WidgetList from './pages/WidgetList';
 import Analytics from './pages/Analytics';
+import Users from './pages/Users'; // ADD THIS IMPORT
 
 // Protected route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -42,6 +43,7 @@ const AppContent = () => {
             <Route path="/widgets/new" element={<WidgetBuilder />} />
             <Route path="/widgets/edit/:siteKey" element={<WidgetBuilder />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/users" element={<Users />} /> {/* ADD THIS ROUTE */}
           </Routes>
         </Layout>
       </ProtectedRoute>
