@@ -10,6 +10,7 @@ const Layout = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: '🏠' },
     { name: 'Widgets', href: '/widgets', icon: '💬' },
+    { name: 'Users', href: '/users', icon: '👥' },
     { name: 'Analytics', href: '/analytics', icon: '📊' },
   ];
 

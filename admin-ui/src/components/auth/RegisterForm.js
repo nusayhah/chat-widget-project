@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
-const RegisterForm = ({ onSwitchToLogin }) => {
+const RegisterForm = ({ onSwitchToLogin, onSuccess }) => {
   const { register, isLoading, error, clearError } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
@@ -67,7 +67,12 @@ const RegisterForm = ({ onSwitchToLogin }) => {
     try {
       const { confirmPassword, ...registerData } = formData;
       await register(registerData);
+
+      if (onSuccess) {
+        onSuccess();
+      } else {
       // Navigation will be handled by the AuthContext and App component
+      }
     } catch (error) {
       // Error is handled by AuthContext
       console.error('Registration failed:', error);
