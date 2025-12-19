@@ -17,22 +17,34 @@ const authenticateAgent = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Check if it's an agent token
-    if (!decoded.agentId && !decoded.userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Invalid token format'
-      });
-    }
+    // Check if it's a user token OR agent token
+    let agent = null;
     
-    // Look for agent
-    const agentId = decoded.agentId || decoded.userId; // Handle both for backward compatibility
-    const agent = await Agent.findById(agentId);
+    if (decoded.userId) {
+      // User from users table - treat as agent
+      const User = require('../models/User');
+      const user = await User.findById(decoded.userId);
+      if (user) {
+        agent = {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          full_name: user.full_name || user.username
+        };
+      }
+    } else if (decoded.agentId) {
+      // Legacy agent from agents table
+      const Agent = require('../models/Agent');
+      const agentFromDb = await Agent.findById(decoded.agentId);
+      if (agentFromDb) {
+        agent = agentFromDb.toJSON();
+      }
+    }
     
     if (!agent) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token - agent not found'
+        message: 'Invalid token - agent/user not found'
       });
     }
 

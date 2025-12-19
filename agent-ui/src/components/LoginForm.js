@@ -95,7 +95,7 @@ const LoginForm = () => {
           </div>
 
           <div className="text-center text-sm text-gray-600">
-            <p>Use: agent@chatwidget.com / agent123</p>
+            <p>Use same credentials as admin dashboard</p>
           </div>
         </form>
       </div>
