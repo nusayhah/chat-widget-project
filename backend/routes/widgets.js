@@ -465,13 +465,7 @@ router.get('/stats/overview', async (req, res) => {
     res.json({
       success: true,
       data: { 
-        stats: {
-          ...stats,
-          total_chats: 0, // Will be calculated from real chat data
-          total_messages: 0, // Will be calculated from real message data
-          average_response_time: '0 min', // Will be calculated from real response times
-          customer_satisfaction: 0 // Will be calculated from real feedback
-        }
+        stats: stats // Already includes all data from updated method
       }
     });
   } catch (error) {
