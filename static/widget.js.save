@@ -78,7 +78,7 @@
         fetchWidgetConfig() {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    const response = yield fetch(`http://localhost:5000/api/widgets/${this.config.siteKey}/config`);
+                    const response = yield fetch(`${this.config.apiUrl}/widgets/${this.config.siteKey}/config`);
                     if (response.ok) {
                         const serverConfig = yield response.json();
                         this.config = Object.assign(Object.assign({}, this.config), serverConfig);
