@@ -49,19 +49,37 @@ class Session {
     }
   }
 
-  // Assign agent to session
+  // Add this method to your Session class:
   static async assignAgent(sessionId, agentId) {
     const query = `
       UPDATE sessions 
       SET assigned_agent_id = ?, status = 'active', ai_mode = FALSE 
       WHERE session_id = ?
     `;
-    
+  
     try {
       const [result] = await pool.execute(query, [agentId, sessionId]);
       return result.affectedRows > 0;
     } catch (error) {
       throw new Error(`Failed to assign agent: ${error.message}`);
+    }
+  }
+
+
+  // 🆕 ADD THIS NEW METHOD for returning to AI
+  // RETURN TO AI: Reset chat to AI mode (no agent)
+  static async returnToAI(sessionId) {
+    const query = `
+      UPDATE sessions 
+      SET assigned_agent_id = NULL, status = 'waiting', ai_mode = TRUE, escalated_at = NULL 
+      WHERE session_id = ?
+    `;
+  
+    try {
+      const [result] = await pool.execute(query, [sessionId]);
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw new Error(`Failed to return session to AI: ${error.message}`);
     }
   }
 

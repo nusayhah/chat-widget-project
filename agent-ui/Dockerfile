@@ -6,12 +6,14 @@ RUN npm ci
 
 COPY . .
 
-# Use build args passed from docker-compose
-ARG REACT_APP_API_URL
-ARG REACT_APP_WS_URL
+# Use LOCALHOST build args
+ARG REACT_APP_API_URL=http://localhost:5000/api
+ARG REACT_APP_WS_URL=ws://localhost:5000
+ARG REACT_APP_DOMAIN=localhost
 
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 ENV REACT_APP_WS_URL=$REACT_APP_WS_URL
+ENV REACT_APP_DOMAIN=$REACT_APP_DOMAIN
 
 RUN npm run build
 

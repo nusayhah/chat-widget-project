@@ -456,15 +456,15 @@ class ChatHandler {
       const url = new URL(req.url, `http://${req.headers.host}`);
       const path = url.pathname;
       const token = url.searchParams.get('token');
-    
+  
       console.log(`🔌 Agent WebSocket connection: ${path}`);
-    
+  
       if (!token) {
         console.log('❌ No token provided for agent WebSocket');
         ws.close(1008, 'Authentication required');
         return;
       }
-    
+  
       // Verify JWT token
       let decoded;
       try {
@@ -474,26 +474,36 @@ class ChatHandler {
         ws.close(1008, 'Invalid token');
         return;
       }
+  
+      // 🆕 ACCEPT BOTH agentId AND userId
+      // FIXED VERSION:
+      const tokenAgentId = decoded.userId || decoded.agentId;
     
-      const agentId = path.split('/').pop();
-    
+      if (!tokenAgentId) {
+        console.log('❌ Token missing both agentId and userId');
+        ws.close(1008, 'Invalid token format');
+        return;
+      }
+  
+      const pathAgentId = path.split('/').pop();
+  
       // Verify agent ID matches token
-      if (decoded.agentId.toString() !== agentId) {
-        console.log(`❌ Token agentId (${decoded.agentId}) doesn't match path agentId (${agentId})`);
+      if (tokenAgentId.toString() !== pathAgentId) {
+        console.log(`❌ Token ID (${tokenAgentId}) doesn't match path agentId (${pathAgentId})`);
         ws.close(1008, 'Agent ID mismatch');
         return;
       }
-    
-      console.log(`🔵 Agent ${agentId} authenticated via WebSocket`);
-    
+  
+      console.log(`🔵 Agent ${tokenAgentId} authenticated via WebSocket`);
+  
       // Set up WebSocket connection
       ws.isAlive = true;
       ws.on('pong', () => {
         ws.isAlive = true;
-        console.log(`🏓 Keep-alive pong from agent ${agentId}`);
+        console.log(`🏓 Keep-alive pong from agent ${tokenAgentId}`);
       }); 
-    
-      this.agents.set(agentId, {
+  
+      this.agents.set(tokenAgentId, {
         ws,
         activeSessions: new Set(),
         isAvailable: true,
@@ -501,46 +511,46 @@ class ChatHandler {
         lastPing: new Date()
       });
 
-      // 🔥 ADD THIS: Send connection status to the newly connected agent
+      // Send connection status
       this.sendMessage(ws, {
         type: 'connection_status',
         status: 'connected',
-        agentId: agentId,
+        agentId: tokenAgentId,
         timestamp: new Date().toISOString()
       });
 
-      // 🔥 ADD THIS: Notify all agents about this agent's status
-      this.broadcastAgentStatus(agentId, 'connected');
-    
+      // Notify all agents about this agent's status
+      this.broadcastAgentStatus(tokenAgentId, 'connected');
+  
       const agentQueue = require('../utils/agentQueue');
-      agentQueue.addAvailableAgent(agentId);
-    
+      agentQueue.addAvailableAgent(tokenAgentId);
+  
       this.sendMessage(ws, {
         type: 'agent_connected',
-        agentId: agentId,
+        agentId: tokenAgentId,
         timestamp: new Date().toISOString()
       });
-    
-      this.sendWaitingSessionsToAgent(agentId);
-    
+  
+      this.sendWaitingSessionsToAgent(tokenAgentId);
+  
       // Set up message handler
       ws.on('message', (data) => {
         try {
           const message = JSON.parse(data.toString());
-          this.handleAgentMessage(agentId, message);
+          this.handleAgentMessage(tokenAgentId, message);
         } catch (error) {
           console.error('Failed to parse agent message:', error);
         }
       });
-    
+  
       ws.on('close', () => {
-        this.handleAgentDisconnection(agentId);
+        this.handleAgentDisconnection(tokenAgentId);
       });
-    
+  
       ws.on('error', (error) => {
-        console.error(`WebSocket error for agent ${agentId}:`, error);
+        console.error(`WebSocket error for agent ${tokenAgentId}:`, error);
       });
-    
+  
       // Keep-alive ping interval
       const pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -549,9 +559,9 @@ class ChatHandler {
           clearInterval(pingInterval);
         }
       }, 25000);
-    
+  
       ws.pingInterval = pingInterval;
-      
+    
     } catch (error) {
       console.error('Agent WebSocket connection error:', error);
       ws.close(1011, 'Internal server error');
@@ -693,6 +703,19 @@ class ChatHandler {
         }
       
         this.broadcastQueueUpdate();
+
+        // 🆕 ADD THIS: Notify all agents about the assignment
+        this.agents.forEach((agent, id) => {
+          if (agent.ws.readyState === WebSocket.OPEN) {
+            this.sendMessage(agent.ws, {
+              type: 'chat_assigned',
+              sessionId: sessionId,
+              agentId: agentId,
+              timestamp: new Date().toISOString()
+            });
+          }
+        });
+
         console.log(`✅ Chat ${sessionId} assigned to agent ${agentId} with full message history`);
       }
     } catch (error) {
@@ -718,7 +741,9 @@ class ChatHandler {
       
       const query = `
         UPDATE sessions 
-        SET assigned_agent_id = NULL, ai_mode = TRUE 
+        SET assigned_agent_id = NULL, 
+            ai_mode = TRUE,
+            status = 'active'
         WHERE session_id = ?
       `;
       
@@ -760,6 +785,19 @@ class ChatHandler {
         }
         
         this.broadcastQueueUpdate();
+
+        // 🆕 ADD THIS: Notify all agents about return to AI
+        this.agents.forEach((agent, id) => {
+          if (agent.ws.readyState === WebSocket.OPEN) {
+            this.sendMessage(agent.ws, {
+              type: 'chat_returned_to_ai',
+              sessionId: sessionId,
+              agentId: agentId,
+              timestamp: new Date().toISOString()
+            });
+          }
+        });
+
         console.log(`✅ Session ${sessionId} returned to AI by agent ${agentId}`);
       }
     } catch (error) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ApiService from '../services/apiService';
+import websocketService from '../services/websocketService'; // 🚨 ADD THIS LINE!
 import { ChatBubbleLeftIcon, UserIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 const ChatInterface = () => {
@@ -24,11 +25,57 @@ const ChatInterface = () => {
       }
     };
 
+    // Load initial data
     loadActiveChats();
+    
+    // 🆕 ADD WebSocket event handlers
+    const handleChatAssigned = (data) => {
+      console.log('📥 ChatInterface: Chat assigned event received:', data);
+      
+      // If this chat was assigned to current agent, refresh active chats
+      if (data.agentId === agent.id) {
+        console.log('🔄 Refreshing active chats (assigned to me)');
+        loadActiveChats();
+      }
+    };
+    
+    const handleChatReturnedToAI = (data) => {
+      console.log('📥 ChatInterface: Chat returned to AI:', data);
+      
+      // If this agent returned the chat, refresh active chats
+      if (data.agentId === agent.id) {
+        console.log('🔄 Refreshing active chats (I returned to AI)');
+        loadActiveChats();
+      }
+    };
+
+    // 🆕 ADD THESE HANDLERS TOO:
+    const handleQueueUpdate = (data) => {
+      console.log('🔄 Queue update received in ChatInterface');
+      // You might want to refresh active chats if queue changes
+    };
+    
+    const handleWaitingSessions = (data) => {
+      console.log('📨 Waiting sessions update in ChatInterface');
+    };
+    
+    // Subscribe to events
+    websocketService.on('chat_assigned', handleChatAssigned);
+    websocketService.on('chat_returned_to_ai', handleChatReturnedToAI);
+    websocketService.on('queue_update', handleQueueUpdate); // 🆕 ADD
+    websocketService.on('waiting_sessions', handleWaitingSessions); // 🆕 ADD
     
     // Refresh every 10 seconds
     const interval = setInterval(loadActiveChats, 10000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      // Unsubscribe from events
+      websocketService.off('chat_assigned', handleChatAssigned);
+      websocketService.off('chat_returned_to_ai', handleChatReturnedToAI);
+      websocketService.off('queue_update', handleQueueUpdate); // 🆕 ADD
+      websocketService.off('waiting_sessions', handleWaitingSessions); // 🆕 ADD
+    };
   }, [agent]);
 
   const formatTime = (timestamp) => {

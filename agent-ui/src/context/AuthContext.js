@@ -59,12 +59,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);  
 
+  // In src/context/AuthContext.js (Agent UI)
+  // Update the login function:
   const login = useCallback(async (credentials) => {
     dispatch({ type: 'LOGIN_START' });
     try {
-      console.log('🔐 Attempting REAL agent login');
+      console.log('🔐 Attempting agent login');
     
-      // REAL API CALL
       const apiUrl = process.env.REACT_APP_API_URL || 'https://192.168.100.124/api';
       const response = await fetch(`${apiUrl}/auth/agent-login`, {
         method: 'POST',
@@ -94,12 +95,11 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || 'Login failed');
       }
 
-      // REAL TOKEN & AGENT DATA
+      // Store agent data and token
       const { agent, token } = data.data;
     
-      console.log('✅ Login successful, agent:', agent.email, 'token received');
+      console.log('✅ Login successful, agent:', agent.email);
     
-      // Store in localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('agent', JSON.stringify(agent));
 

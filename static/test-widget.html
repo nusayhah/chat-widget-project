@@ -148,7 +148,8 @@
     </div>
 
     <!-- Chat Widget Script -->
-    <script src="https://192.168.100.124/widget.js"></script>
+    <!-- Chat Widget Script - USING YOUR WIDGET -->
+    <script defer src="http://localhost/widget.js" data-site-key="widget-mj70q7ao-wqrc1x"></script>
     
     <script>
         // Demo widget instance
@@ -160,8 +161,8 @@
             // But we can also create a custom instance
             setTimeout(() => {
                 widget = new ChatWidget({
-                    siteKey: 'demo-widget-key',
-                    apiUrl: 'https://192.168.100.124/api',
+                    siteKey: 'widget-mj70q7ao-wqrc1x',
+                    apiUrl: 'http://localhost/api',
                     businessName: 'Demo Support',
                     widgetTitle: 'Chat with Demo Team',
                     welcomeMessage: 'Hi! This is a demo of our chat widget. Try sending a message!',

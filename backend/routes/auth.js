@@ -84,46 +84,74 @@ router.post('/login', validate(userSchemas.login), async (req, res) => {
 });
 
 // Agent login route
+// Agent login route - UPDATED to use users table
+// Agent login route - Checks BOTH tables
 router.post('/agent-login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    console.log('🔐 Agent login attempt:', email);
+    console.log('🔐 Agent login attempt for:', email);
     
-    // Find agent in AGENTS table (not users)
-    const agent = await Agent.findByEmail(email);
+    let userData = null;
+    let isFromUsersTable = true;
     
-    if (!agent) {
-      console.log('❌ Agent not found:', email);
+    // FIRST: Check users table
+    const user = await User.findByEmail(email);
+    
+    if (user) {
+      // User found in users table
+      const isPasswordValid = await user.verifyPassword(password);
+      if (isPasswordValid) {
+        userData = {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          full_name: user.full_name || user.username || 'Agent',
+          role: user.role || 'agent'
+        };
+      }
+    } else {
+      // SECOND: Check agents table (for backward compatibility)
+      const agent = await Agent.findByEmail(email);
+      if (agent) {
+        const isPasswordValid = await agent.verifyPassword(password);
+        if (isPasswordValid) {
+          userData = {
+            id: agent.id,
+            username: agent.username,
+            email: agent.email,
+            full_name: agent.full_name || agent.username || 'Agent',
+            role: 'agent',
+            isFromAgentsTable: true
+          };
+          isFromUsersTable = false;
+        }
+      }
+    }
+    
+    if (!userData) {
+      console.log('❌ Invalid credentials for:', email);
       return res.status(401).json({
         success: false,
-        message: 'Invalid agent credentials'
+        message: 'Invalid credentials'
       });
     }
     
-    // Verify password against password_hash
-    const isPasswordValid = await agent.verifyPassword(password);
-    if (!isPasswordValid) {
-      console.log('❌ Invalid password for agent:', email);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid agent credentials'
-      });
-    }
+    // Generate token (use userId for users, agentId for agents)
+    // 🚨 FIX: ALWAYS use generateUserToken for ALL agents
+    const token = generateUserToken(userData.id);
     
-    // Generate REAL JWT token
-    const token = generateAgentToken(agent.id); // USE generateAgentToken
-    
-    console.log('✅ Agent login successful:', agent.email);
+    console.log(`✅ Agent login successful (from ${isFromUsersTable ? 'users' : 'agents'} table):`, email);
     
     res.json({
       success: true,
       message: 'Agent login successful',
       data: {
-        agent: agent.toJSON(),
+        agent: userData,
         token
       }
     });
+    
   } catch (error) {
     console.error('Agent login error:', error);
     res.status(500).json({

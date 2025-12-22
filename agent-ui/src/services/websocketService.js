@@ -4,6 +4,18 @@ class WebSocketService {
     this.socket = null;
     this.agentId = null;
     this.messageHandlers = new Map();
+    // 🆕 ADD THESE LINES FOR DEBUGGING:
+    this.on('accept_chat_failed', (data) => {
+      console.error('❌ Accept chat failed:', data.error);
+    });
+    
+    this.on('chat_assigned', (data) => {
+      console.log('🔔 WebSocketService: Chat assigned to agent', data.agentId);
+    });
+    
+    this.on('chat_returned_to_ai', (data) => {
+      console.log('🔔 WebSocketService: Chat returned to AI by agent', data.agentId);
+    });
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 10;
     this.reconnectDelay = 1000;

@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || 'https://192.168.100.124/api';
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 class ApiService {
   static async getAuthHeaders() {

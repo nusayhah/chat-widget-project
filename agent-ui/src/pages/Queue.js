@@ -44,21 +44,46 @@ const Queue = () => {
     }
 
     let isMounted = true;
+    let reconnectInterval; // DECLARE IT HERE
+    let refreshInterval; // DECLARE IT HERE
 
     // 🆕 IMPROVED: Setup WebSocket connection and listeners
     const setupWebSocketListeners = () => {
       console.log('🔌 Setting up WebSocket listeners for agent:', agent.id);
-    
+  
       // Connect WebSocket (only if not already connected)
       if (websocketService.getConnectionStatus() !== 'connected') {
         websocketService.connect(agent.id);
       }
-    
+  
       // Set up event handlers
       const handleWaitingSessions = (data) => {
         if (isMounted && data.sessions) {
           console.log('📨 Real-time waiting sessions update:', data.sessions.length);
           setWaitingSessions(data.sessions);
+        }
+      };
+
+      // 🆕 ADD THESE NEW HANDLERS:
+      const handleChatAssigned = (data) => {
+        if (isMounted) {
+          console.log('📥 Chat assigned event received:', data);
+          
+          // Remove from waiting sessions
+          setWaitingSessions(prev => 
+            prev.filter(session => session.sessionId !== data.sessionId)
+          );
+        }
+      };
+
+      const handleChatReturnedToAI = (data) => {
+        if (isMounted) {
+          console.log('📥 Chat returned to AI event received:', data);
+          
+          // Refresh waiting sessions (it should reappear in queue)
+          setTimeout(() => {
+            fetchWaitingSessions();
+          }, 500); // Small delay to ensure DB is updated
         }
       };
 
@@ -80,11 +105,30 @@ const Queue = () => {
       websocketService.off('waiting_sessions');
       websocketService.off('connection_status');
       websocketService.off('queue_update');
+      websocketService.off('chat_assigned');        // 🆕 ADD THIS
+      websocketService.off('chat_returned_to_ai');  // 🆕 ADD THIS
 
       // Add new listeners
       websocketService.on('waiting_sessions', handleWaitingSessions);
       websocketService.on('connection_status', handleConnectionStatus);
       websocketService.on('queue_update', handleQueueUpdate);
+      websocketService.on('chat_assigned', handleChatAssigned);        // 🆕 ADD THIS
+      websocketService.on('chat_returned_to_ai', handleChatReturnedToAI); // 🆕 ADD THIS
+
+      // 🆕 ADD THESE MISSING HANDLERS:
+      websocketService.on('accept_chat_failed', (data) => {
+        console.error('❌ Accept chat failed:', data.error);
+        alert('Failed to accept chat: ' + data.error);
+      });
+      
+      websocketService.on('return_to_ai_success', (data) => {
+        console.log('✅ Return to AI successful:', data);
+      });
+      
+      websocketService.on('return_to_ai_failed', (data) => {
+        console.error('❌ Return to AI failed:', data.error);
+        alert('Failed to return chat to AI: ' + data.error);
+      });
 
       // Initial fetch
       fetchWaitingSessions();
@@ -98,11 +142,20 @@ const Queue = () => {
     console.log('🔗 Initial connection status:', initialStatus);
 
     // 🆕 ADD: Periodic refresh to keep data fresh
-    const refreshInterval = setInterval(() => {
+    refreshInterval = setInterval(() => { // REMOVE 'const', use outer variable
       if (isMounted && websocketService.getConnectionStatus() === 'connected') {
         fetchWaitingSessions();
       }
     }, 30000); // Every 30 seconds
+
+    // 🆕 ADD: Auto-reconnect on disconnection
+    reconnectInterval = setInterval(() => { // REMOVE 'const', use outer variable
+      const status = websocketService.getConnectionStatus();
+      if (status === 'disconnected' && isMounted && agent?.id) {
+        console.log('🔄 Attempting WebSocket reconnection...');
+        websocketService.connect(agent.id);
+      }
+    }, 10000); // Every 10 seconds
 
     return () => {
       console.log('🧹 Cleaning up Queue component');
@@ -110,9 +163,16 @@ const Queue = () => {
     
       // Clear intervals
       clearInterval(refreshInterval);
+      clearInterval(reconnectInterval);
     
-      // 🆕 FIX: DON'T remove listeners here - keep them for other components
-      // Only disconnect when agent logs out (handled by AuthContext)
+      // Clean up WebSocket handlers
+      websocketService.off('waiting_sessions');
+      websocketService.off('connection_status');
+      websocketService.off('queue_update');
+      websocketService.off('chat_assigned');        // 🆕 ADD THIS
+      websocketService.off('chat_returned_to_ai');  // 🆕 ADD THIS
+    
+      // Don't disconnect WebSocket - keep it alive for other components
     };
   }, [agent?.id, fetchWaitingSessions]);
 
