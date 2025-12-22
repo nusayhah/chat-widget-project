@@ -6,13 +6,15 @@ services:
     container_name: chat_mariadb
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: "root123"
-      MYSQL_DATABASE: "chatdb"
-      MYSQL_USER: "chatuser"
-      MYSQL_PASSWORD: "chat123"
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: ${DB_NAME:-chatdb}
+      MYSQL_USER: ${DB_USER:-chatuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-chat123}
     volumes:
       - mariadb_data:/var/lib/mysql
       - ./mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"  # Expose MariaDB for local access
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       start_period: 20s
@@ -30,9 +32,16 @@ services:
       mariadb:
         condition: service_healthy
     env_file: 
-      - ./backend/.env
+      - ./.env  # Use the main .env file
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
+      - DB_HOST=mariadb  # Use Docker service name internally
+      - DB_PORT=3306
+      - DB_USER=${DB_USER:-chatuser}
+      - DB_PASSWORD=${DB_PASSWORD:-chat123}
+      - DB_NAME=${DB_NAME:-chatdb}
+    ports:
+      - "5000:5000"  # Expose backend API
     networks:
       - chat-network
 
@@ -40,11 +49,13 @@ services:
     build: 
       context: ./admin-ui
       args:
-        - REACT_APP_API_URL=${EXTERNAL_API_URL}
-        - REACT_APP_WS_URL=${EXTERNAL_WS_URL}
-        - REACT_APP_CDN_URL=${EXTERNAL_WIDGET_URL}
+        - REACT_APP_API_URL=http://localhost:5000/api
+        - REACT_APP_WS_URL=ws://localhost:5000
+        - REACT_APP_CDN_URL=http://localhost
     container_name: admin_ui
     restart: always
+    ports:
+      - "3000:3000"  # Expose admin UI
     networks:
       - chat-network
 
@@ -52,10 +63,12 @@ services:
     build:
       context: ./agent-ui
       args:
-        - REACT_APP_API_URL=${EXTERNAL_API_URL}
-        - REACT_APP_WS_URL=${EXTERNAL_WS_URL}
+        - REACT_APP_API_URL=http://localhost:5000/api
+        - REACT_APP_WS_URL=ws://localhost:5000
     container_name: agent_ui
     restart: always
+    ports:
+      - "3002:3002"  # Expose agent UI
     networks:
       - chat-network
 
@@ -65,14 +78,12 @@ services:
     restart: always
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       - server
       - admin-ui
       - agent-ui
     volumes:
       - ./static:/var/www/static
-      - ./ssl:/etc/ssl
     networks:
       - chat-network
 

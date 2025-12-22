@@ -1,178 +1,281 @@
-# Chat Widget Generator - Week 3 Implementation
+# Chat Widget Generator + Real-Time Chat Server with AI & Human Escalation
 
-## 🎯 Week 3 Features Completed
+🚀 **A Production-Grade Chat System for Businesses**  
+*10-Week Intern Project | Local Development & Production Ready*
 
-### 1. ✅ WIDGET PROJECT SETUP
-- ✅ Created widget configuration and dependencies
-- ✅ Set up build system to bundle JavaScript using Rollup
-- ✅ TypeScript support for better development experience
-- ✅ Modular architecture with types and interfaces
+## 📋 Project Overview
 
-### 2. ✅ WIDGET LOADER
-- ✅ Created script that loads when added to websites
-- ✅ Fetches widget configuration from backend API
-- ✅ Initializes chat widget with custom settings
-- ✅ Auto-initialization via data attributes
-- ✅ Programmatic API for manual control
+The **Chat Widget Generator** is a complete, modular chat system that allows businesses to create custom chat widgets for their websites with AI-powered responses and seamless human agent escalation.
 
-### 3. ✅ CHAT UI
-- ✅ Built responsive chat interface for customer websites
-- ✅ Fully customizable (colors, position, messages)
-- ✅ Open/close functionality with smooth animations
-- ✅ Minimize/maximize support
-- ✅ Mobile-responsive design
-- ✅ Professional styling with modern UI/UX
+### ✨ Key Features
 
-### 4. ✅ REAL-TIME CHAT PREPARATION
-- ✅ Set up WebSocket connection structure
-- ✅ Created message sending/receiving system
-- ✅ Built chat input and message display
-- ✅ Typing indicators
-- ✅ Auto-reconnection on disconnect
-- ✅ Session management
+- **Custom Chat Widgets**: Businesses design and embed chat widgets in 2 minutes
+- **AI-Powered Conversations**: Smart AI responses using OpenRouter API
+- **Human Agent Escalation**: Seamless transfer from AI to human support
+- **Real-Time Chat**: WebSocket-based instant messaging
+- **Multi-Platform Support**: Desktop and mobile responsive design
+- **Secure & Scalable**: Docker containerization with MariaDB
+- **Admin Dashboard**: Full control over widgets and analytics
+- **Agent Interface**: Dedicated support agent chat portal
 
-### 5. ✅ TESTING & EMBEDDING
-- ✅ Created test HTML page for widget demonstration
-- ✅ Verified widget loads and works with backend
-- ✅ Tested customization from admin panel
-- ✅ Interactive demo controls
-- ✅ Theme switching functionality
+## 🏗️ System Architecture
 
-## 🚀 Final Result Achieved
+┌──────────────────────────┐
+│ User Website │
+│ (Embeds Chat Widget) │
+└──────────────┬───────────┘
+│ HTTPS/WSS
+┌─────────▼───────────┐
+│ Nginx Reverse Proxy│
+│ (SSL + Routing) │
+└───────┬────────┬─────┘
+│ │
+┌────────▼──┐ ┌───▼────────┐
+│ Chat Server│ │ Agent UI │
+│ Node.js + │ │ React App │
+│ Socket.IO │ │ │
+└───────┬────┘ └────────────┘
+│
+┌───────▼─────────┐
+│ MariaDB Database │
+│ (Widgets, Chats) │
+└──────────────────┘
+text
 
-✅ **Website owners can now add ONE line of code and get a fully functional chat widget!**
 
-```html
-<script src="https://your-domain.com/widget.js" data-site-key="your-site-key"></script>
-```
+## 🛠️ Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Frontend** | React + TypeScript + TailwindCSS |
+| **Backend** | Node.js + Express + Socket.IO |
+| **Database** | MariaDB |
+| **AI Integration** | OpenRouter API |
+| **Deployment** | Docker Compose + Nginx |
+| **Authentication** | JWT |
+| **CI/CD** | GitHub Actions |
 
 ## 📁 Project Structure
 
-```
-chat-widget-project-new/
-├── widget/                     # Embeddable widget (Week 3)
-│   ├── src/
-│   │   ├── widget.ts          # Main widget implementation
-│   │   └── types.ts           # TypeScript definitions
-│   ├── dist/
-│   │   └── widget.js          # Built widget bundle
-│   ├── package.json
-│   ├── rollup.config.js       # Build configuration
-│   └── tsconfig.json
-├── backend/                   # Backend API (Weeks 1-2 + Week 3 updates)
-│   ├── routes/
-│   │   ├── widget.js          # Widget configuration API
-│   │   └── ...
-│   ├── websocket/
-│   │   └── chatHandler.js     # WebSocket chat handling
-│   └── server.js              # Updated with WebSocket support
-├── admin-ui/                  # Admin interface (Weeks 1-2)
-├── test-widget.html          # Widget testing page
-└── README.md
-```
+chat-widget-project/
+├── admin-ui/ # Widget Builder Dashboard (React)
+├── agent-ui/ # Support Agent Interface (React)
+├── backend/ # Node.js API + WebSocket Server
+├── widget/ # Embeddable Chat Widget (TypeScript)
+├── nginx/ # Reverse Proxy Configuration
+├── mariadb/ # Database Schema & Initialization
+├── static/ # Static files & Test Pages
+├── docs/ # Documentation
+├── .github/workflows/ # CI/CD Pipeline
+├── docker-compose.yml # Production Deployment
+└── README.md # This file
+text
 
-## 🔧 Widget Features
 
-### Core Functionality
-- **Instant Loading**: Lightweight bundle (~50KB minified)
-- **Auto-Configuration**: Fetches settings from your backend
-- **Real-time Chat**: WebSocket-powered messaging
-- **Responsive Design**: Works on desktop and mobile
-- **Cross-browser Support**: Modern browsers + IE11
+## 🚀 Quick Start (Local Development)
 
-### Customization Options
-- **Colors**: Primary and secondary color themes
-- **Positioning**: 4 corner positions (bottom-right, bottom-left, top-right, top-left)
-- **Messages**: Custom welcome messages and titles
-- **Branding**: Business name and custom styling
-- **Behavior**: Pre-chat forms, typing indicators
+### Prerequisites
+- Docker & Docker Compose
+- Node.js 18+ (for development)
+- Git
 
-### Technical Features
-- **TypeScript**: Type-safe development
-- **WebSocket**: Real-time bidirectional communication
-- **Session Management**: Unique session tracking
-- **Auto-reconnection**: Handles network interruptions
-- **Error Handling**: Graceful fallbacks
-- **Security**: XSS protection and input sanitization
+### 1. Clone & Setup
+```bash
+git clone <your-repo-url>
+cd chat-widget-project
+cp .env.example .env
+# Edit .env with your local configuration (optional)
 
-## 🎮 Demo & Testing
+2. Start Services
+bash
 
-### Test the Widget
-1. Open `test-widget.html` in your browser
-2. The widget appears in the bottom-right corner
-3. Click to open/close the chat
-4. Try the demo controls to test functionality
-5. Send messages to see simulated agent responses
+# Build and start all containers
+docker-compose up -d --build
 
-### Integration Example
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>My Website</title>
-</head>
-<body>
-    <!-- Your website content -->
-    
-    <!-- Chat Widget - Just one line! -->
-    <script src="http://localhost:5000/widget/widget.js" data-site-key="demo-site-key"></script>
-</body>
-</html>
-```
+# Check container status
+docker ps
 
-### Advanced Usage
-```javascript
-// Manual initialization with custom config
-const widget = new ChatWidget({
-    siteKey: 'your-site-key',
-    apiUrl: 'https://your-api.com/api',
-    primaryColor: '#ff6b6b',
-    position: 'bottom-left',
-    welcomeMessage: 'Welcome to our store! How can we help?'
-});
+3. Access Applications (Localhost)
 
-// Programmatic control
-widget.open();   // Open the chat
-widget.close();  // Close the chat
-widget.destroy(); // Remove the widget
-```
+    Admin Dashboard: http://localhost:3000
 
-## 🔌 Backend Integration
+    Agent Interface: http://localhost/agent
 
-### Widget Configuration API
-- `GET /api/widget/:siteKey/config` - Fetch widget configuration
-- `PUT /api/widget/:siteKey/config` - Update widget configuration
-- `POST /api/widget/config` - Create new widget configuration
+    Widget Test Page: http://localhost/test-widget.html
 
-### WebSocket Endpoints
-- `ws://your-domain/ws/:sessionId` - Real-time chat connection
+    API Health Check: http://localhost:5000/api/health
 
-### Demo Responses
-The current implementation includes intelligent demo responses based on keywords:
-- Greetings (hello, hi, hey)
-- Help requests (help, support)
-- Pricing inquiries (price, cost, pricing)
-- Demo acknowledgment (demo, test)
-- Farewells (bye, goodbye, thanks)
+4. Create First Admin User
 
-## 🎯 What's Next?
+    Open http://localhost:3000
 
-The widget is now production-ready for basic chat functionality. Future enhancements could include:
+    Click "Register" to create first admin account
 
-1. **Agent Dashboard**: Real-time agent interface for handling chats
-2. **File Uploads**: Support for image and document sharing
-3. **Chat History**: Persistent conversation storage
-4. **Advanced Routing**: Smart agent assignment and queuing
-5. **Analytics**: Chat metrics and performance tracking
-6. **Integrations**: CRM, helpdesk, and third-party tool connections
+    Login and create your first widget
 
-## 🚀 Deployment Ready
+📊 Database Schema
 
-The widget is now ready for production deployment:
-- Build the widget: `npm run build` in `/widget` directory
-- Deploy the backend with WebSocket support
-- Serve the widget.js file from your CDN
-- Customers add one script tag to their websites
-- Instant chat functionality across all customer sites!
+The system uses 5 main tables:
 
-**Week 3 Implementation: COMPLETE! ✅**
+    users - Admin user accounts
+
+    widget_configs - Widget configurations and settings
+
+    sessions - Chat sessions (AI/Human mode tracking)
+
+    messages - All chat messages
+
+    agents - Support agent accounts (legacy, now using users table)
+
+🔌 API Endpoints
+Authentication
+
+    POST /api/auth/register - Register new admin
+
+    POST /api/auth/login - Admin login
+
+    POST /api/auth/agent-login - Agent login
+
+    GET /api/auth/me - Get current user
+
+Widget Management
+
+    GET /api/widgets - List all widgets
+
+    POST /api/widgets - Create new widget
+
+    GET /api/widgets/:siteKey/config - Get widget config (public)
+
+    PUT /api/widgets/:siteKey - Update widget
+
+Chat Operations
+
+    POST /api/widgets/escalate/:siteKey/:sessionId - Escalate to human
+
+    GET /api/widgets/sessions/:sessionId/messages - Get chat history
+
+Agent Operations
+
+    GET /api/agents/stats - Agent statistics
+
+    GET /api/agents/waiting-sessions - Chat queue
+
+    GET /api/agents/active-chats - Active chats
+
+🎯 Key Technical Achievements
+
+✅ Week 1-2: Complete project setup, database design, admin UI
+✅ Week 3: Embeddable widget with real-time WebSocket communication
+✅ Week 4: AI integration with OpenRouter API
+✅ Week 5: Human escalation logic and agent queue
+✅ Week 6: Agent interface with live chat capabilities
+✅ Week 7: Nginx reverse proxy with localhost routing
+✅ Week 8: Docker production setup for local development
+✅ Week 9: CI/CD pipeline with GitHub Actions
+✅ Week 10: Testing, documentation, and deployment guides
+🔒 Security Features
+
+    JWT Authentication: Secure token-based authentication
+
+    CORS Protection: Strict origin validation for localhost
+
+    Input Sanitization: Protection against XSS attacks
+
+    Rate Limiting: Protection against abuse
+
+    Database Security: Prepared statements and parameterized queries
+
+📈 Performance & Scalability
+
+    Load Balanced: Nginx reverse proxy for optimal routing
+
+    WebSocket Optimization: Efficient real-time communication
+
+    Database Indexing: Optimized queries for large datasets
+
+    Containerized: Easy scaling with Docker
+
+    Local Development: Full functionality on localhost
+
+🔧 Development Commands
+bash
+
+# Start all services
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# Rebuild specific service
+docker-compose build admin-ui
+
+# Check database
+docker exec -it chat_mariadb mysql -u chatuser -pchat123 chatdb
+
+# Reset everything (warning: deletes data)
+docker-compose down -v
+docker-compose up -d --build
+
+🐛 Troubleshooting
+Port 3306 already in use
+bash
+
+# Change MariaDB port in docker-compose.yml
+sed -i 's/"3306:3306"/"3307:3306"/' docker-compose.yml
+sed -i 's/DB_PORT=3306/DB_PORT=3307/' .env
+docker-compose down && docker-compose up -d
+
+Agent UI shows blank page
+bash
+
+# Rebuild agent-ui with correct environment
+docker-compose build agent-ui
+docker-compose up -d agent-ui
+
+WebSocket connection issues
+
+    Ensure port 5000 is accessible
+
+    Check browser console for WebSocket errors
+
+    Verify REACT_APP_WS_URL is set to ws://localhost:5000
+
+🤝 Contributing
+
+    Fork the repository
+
+    Create a feature branch (git checkout -b feature/amazing-feature)
+
+    Commit changes (git commit -m 'Add amazing feature')
+
+    Push to branch (git push origin feature/amazing-feature)
+
+    Open a Pull Request
+
+📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+📞 Support
+
+    Documentation: Check the /docs folder
+
+    Issues: GitHub Issues tracker
+
+    Demo: Access the test widget page for live demonstration
+
+    Local Demo: http://localhost/test-widget.html
+
+🎉 Getting Help
+
+For setup assistance or troubleshooting:
+
+    Check the deployment guide in /docs/DEPLOYMENT_GUIDE.md
+
+    Review the troubleshooting section above
+
+    Test with the included test-widget.html page
+
+    Check container logs: docker-compose logs -f
