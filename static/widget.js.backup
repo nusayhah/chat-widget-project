@@ -45,7 +45,7 @@
             this.isMinimized = true;
             this.websocket = null;
             this.messages = [];
-            this.config = Object.assign({ apiUrl: config.apiUrl || `http://${window.location.hostname}:5000/api`, businessName: 'Support Team', widgetTitle: 'Chat with us', welcomeMessage: 'Hello! How can we help you today?', primaryColor: '#007bff', secondaryColor: '#6c757d', position: 'bottom-right', enablePrechatForm: false, prechatFields: [] }, config);
+            this.config = Object.assign({ apiUrl: config.apiUrl || `https://${window.location.hostname}/api`, businessName: 'Support Team', widgetTitle: 'Chat with us', welcomeMessage: 'Hello! How can we help you today?', primaryColor: '#007bff', secondaryColor: '#6c757d', position: 'bottom-right', enablePrechatForm: false, prechatFields: [] }, config);
             this.sessionId = this.generateSessionId();
             this.isMobile = window.innerWidth <= 768;
             this.init();
@@ -78,7 +78,7 @@
         fetchWidgetConfig() {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
-                    const response = yield fetch(`http://localhost:5000/api/widgets/${this.config.siteKey}/config`);
+                    const response = yield fetch(`${this.config.apiUrl}/widgets/${this.config.siteKey}/config`);
                     if (response.ok) {
                         const serverConfig = yield response.json();
                         this.config = Object.assign(Object.assign({}, this.config), serverConfig);
@@ -784,7 +784,7 @@
         }
         setupWebSocket() {
             try {
-                const apiUrl = this.config.apiUrl || (typeof window !== 'undefined' ? `http://${window.location.hostname}:5000/api` : 'http://localhost:5000/api');
+                const apiUrl = this.config.apiUrl || (typeof window !== 'undefined' ? `https://${window.location.hostname}/api` : 'https://localhost/api');
                 const wsBaseUrl = apiUrl
                     .replace('https://', 'wss://')
                     .replace('http://', 'ws://')
